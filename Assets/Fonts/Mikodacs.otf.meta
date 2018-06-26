@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: dc658396db2354383aeeadf87c7868e7
+timeCreated: 1512609092
+licenseType: Free
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: Mikodacs
+  fontNames:
+  - Mikodacs
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: e1aeb264456d44a959402ff53c7b01bf
+timeCreated: 1515461170
+licenseType: Free
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: Deutschlander
+  fontNames:
+  - Deutschlander
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
