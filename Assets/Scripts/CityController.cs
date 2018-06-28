@@ -36,9 +36,7 @@ public class CityController : MonoBehaviour, IPointerClickHandler, IPointerEnter
 		if (GameController.canInteractWithMap && GetComponent<SpriteRenderer>().enabled == true) {
 			gameController.DisplayTeamDetailPanel (GetTeamOfCity ());
 
-			if (GameController.playerTeam == null) {
-				//Select team available
-			}
+
 		}
 	}
 	#endregion

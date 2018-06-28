@@ -30,8 +30,17 @@ public class Athlete {
 	public string name;
 	public string originCountyName;
 
+	public int seasonsPlayed = 0;
+	public int seasonsWithTeam = 0;
+
+	public Sprite bodySprite;
+	public Sprite jerseySprite;
+
 	public bool manager;
-	public bool starting = false;
+	public bool onField = false;
+
+	public bool starting = false; //Unused
+
 
 	public List<Attribute> attributeList = new List<Attribute> ();
 	public List<Statistic> statisticList = new List<Statistic> ();
@@ -59,6 +68,9 @@ public class Athlete {
 		}
 			
 		race = gameController.races [Random.Range (0, gameController.races.Count)]; //Should be tailored carefully either in Race script or here with randos
+		bodySprite = race.raceSprite;
+		jerseySprite = race.raceJersey;
+
 		age += Random.Range (6, 12);
 		originCountyName = gameController.countyObjects [Random.Range (0, gameController.countyObjects.Count)].GetComponent<CountyController> ().countyName;
 
@@ -77,9 +89,10 @@ public class Athlete {
 			attributeList [i].value = Random.Range (0, 2);
 		}
 
-		statisticList.Add (new Statistic ("Seasons Played"));
+		//statisticList.Add (new Statistic ("Seasons Played"));
 		statisticList.Add (new Statistic ("Matches Played"));
 		statisticList.Add (new Statistic ("Wins"));
+		statisticList.Add (new Statistic ("Match MVPs"));
 		statisticList.Add (new Statistic ("Goals"));
 		statisticList.Add (new Statistic ("Assists"));
 		statisticList.Add (new Statistic ("Boards"));
@@ -116,6 +129,7 @@ public class Athlete {
 	public bool stealing;
 
 	//Below here are the match stats for the athlete:
+	/*
 	public int seasonsPlayed = 0;
 	public int matchesPlayed = 0;
 	public int wins = 0;
@@ -129,6 +143,7 @@ public class Athlete {
 	public int saves = 0;
 	public int turnovers = 0;
 	public int misses = 0;
+	*/
 }
 
 public class Race {

@@ -41,16 +41,17 @@ public class GameController : MonoBehaviour {
 	public Image teamShieldImage;
 	public Image teamLogoPrimaryImage;
 	public Image teamLogoSecondaryImage;
+	public Text teamEstablishedYearText;
 	public Text ownerNameText;
 	public List<GameObject> ownerValuesList = new List<GameObject> ();
 
 	public Text teamGoldText;
 	public Text teamPrestigeText;
 
+	public GameObject schedulePanel;
+
 	public GameObject managerAthletePanel;
 	public List<GameObject> athletePanelsList = new List<GameObject>();
-
-	public GameObject schedulePanel;
 
 	[Header("Athlete Detail Panel")]
 	public GameObject bridgePanel; //Should only be temporary and replaced with bridges connected to athleteDetailPanel eventually
@@ -60,9 +61,12 @@ public class GameController : MonoBehaviour {
 	public Text ageText;
 	public Text raceText;
 	public Text originText;
+	public Text experienceAsProText;
+	public Text experienceWithTeamText;
 
 	public GameObject attributesGroupObj;
-	public GameObject statisticsGroupObj;
+	public GameObject seasonStatisticsGroupObj;
+	public GameObject careerStatisticsGroupObj;
 
 	[Header("Owner Message Panel")]
 	public GameObject ownerMessagePanel;
@@ -83,14 +87,27 @@ public class GameController : MonoBehaviour {
 
 	[Header("Match UI")]
 	public GameObject matchUIObject;
-	public GameObject matchFieldObject;
 	public Text matchHomeTitle;
 	public Text matchAwayTitle;
 	public Text matchHomeScore;
 	public Text matchAwayScore;
 	public Button matchContinueButton;
+	public Button matchSimulateButton;
 	public Image matchHomeShield;
 	public Image matchAwayShield;
+	public GameObject matchManagerSelectionPanel;
+	public GameObject matchAthleteSelectionGroup;
+	public GameObject matchSelectedAthlete;
+
+	[Header("Match Field")]
+	public GameObject matchFieldObject;
+	public GameObject homeGoalzone;
+	public GameObject awayGoalzone;
+	public GameObject matchFog;
+
+	public GameObject athleteOnFieldPrefab;
+
+	private FieldGridManager fieldGridManager;
 
 	[Header("League Panel")]
 	public GameObject leaguePanel;
@@ -98,92 +115,7 @@ public class GameController : MonoBehaviour {
 	public GameObject leagueTeamUIPrefab;
 	public GameObject leaguePreviousChampionTeamUI;
 
-
-	[Header("End New Canvas")]
-
-
-	[Header("Season Schedule Panel")]	//Season Schedule Panel (On Team Panel)
-	public GameObject seasonSchedulePanel;
-	public Text[] seasonScheduleMatchupTexts;
-	public Text[] seasonScheduleResultTexts;
-
-	[Header("Match Panel")]
-	public GameObject matchUI;
-	public GameObject matchPanel;
-	public Text[] matchTexts = new Text[6];
-	public Text homeScoreText;
-	public Text awayScoreText;
-	public Button matchInteractionButton;
-	public Button simulateMatchButton;
-	public GameObject matchNotificationPanel;
-	public Text possessionsLeftText;
-	public Text homeNotificationText;
-	public Text awayNotificationText;
-	public GameObject matchNotificationObj;
-	public List<GameObject> matchNotificationObjList = new List<GameObject> ();
-
-	[Header("Team Panel during Matches")]
-	public GameObject opportunityPanel;
-	public Button[] opportunityButtons;
-	public GameObject playHighlight;
-
-	[Header("Field Panel")]
-	public GameObject fieldPanel;
-	public GameObject fieldPlayIndicatorPrefab;
-	public GameObject ballIndicatorPrefab;
-	[HideInInspector] public GameObject fieldPlayIndicatorObj;
-	[HideInInspector] public GameObject ballIndicatorObj;
-	public List<GameObject> fieldPositionsList = new List<GameObject> ();
-	public GameObject athleteFieldUIPrefab;
-
-	[Header("Opponent Team Panel")]
-	public GameObject opponentTeamPanel;
-	public Text opponentTeamNameText;
-	public List<GameObject> opponentManagerUIObjects;
-	public List<GameObject> opponentAthleteUIObjects;
-	public GameObject opponentAthletePanel;
-
-	[Header("Opponent County Panel")]
-	public GameObject opponentCountyPanel;
-	public Text opponentCountyNameText;
-	public Text opponentCurrentCapitalText;
-	public Text opponentCurrentTeamOfCapitalText;
-
-	private Vector3 homePanelPosition;
-	private Vector3 awayPanelPosition;
-
-	[Header("Draft Panel")]
-	public GameObject draftPanel;
-	public Text seasonDraftText;
-	public DraftOrderUI[] draftOrderUIArray;
-	public AthleteUI[] draftAthleteUIDisplayArray;
-	public Button draftConfirmationButton;
-
-	[Header("Draftee Info Panel")]
-	public GameObject drafteeInfoPanel;
-	public Text drafteeNameText;
-
 	//End of UI
-
-	//New Variables
-	public static bool canInteractWithMap = true;
-	public static bool canHoverMatches = true;
-
-	public static CountyController focusedCounty;
-	//End New Variables
-
-	public static Athlete playerManager;
-	public static TeamController playerTeam;
-	public static TeamController displayTeam;
-
-	/*
-	public static bool countyEnterDisabled;
-	public static bool cityEnterDisabled;
-	*/
-	public static bool movementPaused;
-
-	public static Athlete displayAthlete;
-	public static int week = -1;
 
 	[Header("Non UI")]
 	public GameObject fogLayer;
@@ -195,6 +127,19 @@ public class GameController : MonoBehaviour {
 	public List<Sprite> raceJerseyList;
 
 	public List<Race> races = new List<Race> ();
+
+	public static bool canInteractWithMap = true;
+	public static bool canHoverMatches = true;
+	public static bool movementPaused = false;
+
+	public static CountyController focusedCounty;
+
+	public static Athlete playerManager;
+	public static TeamController displayTeam;
+	public static Athlete selectedAthleteForPlacement; //This is a bit dubious
+
+	//public static Athlete displayAthlete;
+	public static int week = -1;
 
 	private float cameraFullSize;
 	private Vector3 cameraStartPosition;
@@ -209,6 +154,8 @@ public class GameController : MonoBehaviour {
 	void Start () {
 		cameraFullSize = Camera.main.orthographicSize;
 		cameraStartPosition = Camera.main.transform.position;
+
+		fieldGridManager = FindObjectOfType<FieldGridManager> ();
 
 		exitButton.gameObject.SetActive (false);
 		advanceButton.gameObject.SetActive (false);
@@ -225,29 +172,6 @@ public class GameController : MonoBehaviour {
 		leaguePanel.SetActive (false);
 
 		fogLayer.SetActive (false);
-
-
-
-		//Everything below is up for review
-
-		matchUI.SetActive (false);
-		opponentTeamPanel.SetActive (false);
-		opponentCountyPanel.SetActive (false);
-		opportunityPanel.SetActive (false);
-		playHighlight.SetActive (false);
-		drafteeInfoPanel.SetActive (false);
-		draftPanel.SetActive (false);
-		draftConfirmationButton.gameObject.SetActive (false);
-		athleteDetailPanel.SetActive (false);
-
-		/*
-		notificationPanel.gameObject.SetActive (true);
-		notificationButton.enabled = false;
-		notificationText.text = "Please select a manager and team.";
-
-		homePanelPosition = teamPanel.transform.localPosition;
-		awayPanelPosition = opponentTeamPanel.transform.localPosition;
-		*/
 
 		races.Add (new Race ("Chooken", raceSpriteList [0], raceJerseyList [0]));
 		races.Add (new Race ("Laguna", raceSpriteList [1], raceJerseyList [1]));
@@ -394,12 +318,23 @@ public class GameController : MonoBehaviour {
 
 	#endregion
 
+	#region Displaying Team
 	public void DisplayTeamDetailPanel(TeamController team) {
 		displayTeam = team;
 
 		canInteractWithMap = false;
 
 		teamDetailPanel.SetActive (true);
+
+		Vector3 originalPanelPosition = teamDetailPanel.transform.localPosition;
+		originalPanelPosition.y = -64;
+
+		Vector3 offsetPanelPosition = originalPanelPosition;
+		offsetPanelPosition.y = -1550;
+		teamDetailPanel.transform.localPosition = offsetPanelPosition;
+
+		StartCoroutine (MoveObjectFromCurrentPositionTo (teamDetailPanel, originalPanelPosition, 0.5f));
+
 		teamDetailNameText.text = team.teamName;
 		if (week > 0) {
 			teamDetailNameText.text += " ( " + team.winsThisSeason + " - " + team.losesThisSeason + " )";
@@ -409,6 +344,8 @@ public class GameController : MonoBehaviour {
 		teamLogoSecondaryImage.sprite = team.logoSecondarySprite;
 		teamLogoPrimaryImage.color = team.GetCity ().GetCounty ().GetCapitalCity ().GetTeamOfCity ().teamColor; //The capital team's color
 		teamLogoSecondaryImage.color = team.teamColor;
+
+		teamEstablishedYearText.text = "Established " + team.yearEstablished + " in " + team.GetCity ().cityName;
 
 		teamDescriptionText.text = team.teamDescription;
 
@@ -430,8 +367,7 @@ public class GameController : MonoBehaviour {
 				}
 			}
 		}
-
-		/*
+			
 		Text managerNameText = managerAthletePanel.transform.GetChild (0).GetComponent<Text> ();
 		Image managerImage = managerAthletePanel.transform.GetChild (1).GetComponent<Image> ();
 		Image managerJerseyImage = managerAthletePanel.transform.GetChild (2).GetComponent<Image> ();
@@ -439,8 +375,8 @@ public class GameController : MonoBehaviour {
 		Text managerPositionText = managerAthletePanel.transform.GetChild (3).GetComponent<Text> ();
 
 		managerNameText.text = team.teamManager.name;
-		managerImage.sprite = team.teamManager.race.raceSprite;
-		managerJerseyImage.sprite = team.teamManager.race.raceJersey;
+		managerImage.sprite = team.teamManager.bodySprite;
+		managerJerseyImage.sprite = team.teamManager.jerseySprite;
 		managerJerseyImage.color = team.teamColor;
 
 		managerButton.onClick.RemoveAllListeners ();
@@ -474,8 +410,8 @@ public class GameController : MonoBehaviour {
 				athleteNameText.text = athleteOnPanel.name;
 
 				//Should have the image and jersey stored directly on the athletes as opposed to pulling from their race class
-				athleteImage.sprite = athleteOnPanel.race.raceSprite;
-				athleteJerseyImage.sprite = athleteOnPanel.race.raceJersey;
+				athleteImage.sprite = athleteOnPanel.bodySprite;
+				athleteJerseyImage.sprite = athleteOnPanel.jerseySprite;
 
 				athleteJerseyImage.color = team.teamColor;
 
@@ -498,11 +434,6 @@ public class GameController : MonoBehaviour {
 
 		bridgePanel.SetActive (false);
 		athleteDetailPanel.SetActive (false);
-
-		for (int i = 0; i < athleteOptionButtons.Count; i++) {
-			athleteOptionButtons [i].GetComponent<Image> ().enabled = false;
-			athleteOptionButtons [i].GetComponentInChildren<Text> ().enabled = false;
-		}
 
 		for (int i = schedulePanel.transform.childCount - 1; i >= 0; i--) {
 			Destroy (schedulePanel.transform.GetChild (i).gameObject);
@@ -548,7 +479,6 @@ public class GameController : MonoBehaviour {
 			newText.GetComponentInChildren<Text> ().text = newString;
 			newText.GetComponentInChildren<Image> ().color = backColor;
 		}
-		*/
 	}
 
 	public void DisplayAthletePanel(GameObject athletePan, Athlete athlete) {
@@ -557,13 +487,20 @@ public class GameController : MonoBehaviour {
 			UndisplayAthletePanel();
 		} else {
 			Debug.Log ("Displaying: " + athlete.name);
+
+			Vector3 newTeamDetailPosition = teamDetailPanel.transform.localPosition;
+			newTeamDetailPosition.y = 1090; //This will only work for the optimal resolution. Needs to use anchor points to determine the correct location
+			StartCoroutine(MoveObjectFromCurrentPositionTo(teamDetailPanel, newTeamDetailPosition, 0.5f));
+
 			bridgePanel.SetActive (true);
 			athleteDetailPanel.SetActive (true);
 			bridgePanel.transform.position = athletePan.transform.position;
 
-			ageText.text = "Age: " + athlete.age;
-			raceText.text = "Race: " + athlete.race.raceName;
-			originText.text = "Origin: " + athlete.originCountyName;
+			raceText.text = athlete.race.raceName;
+			originText.text = athlete.originCountyName;
+			ageText.text = athlete.age + " seasons old";
+			experienceAsProText.text = "Pro Athlete for " + athlete.seasonsPlayed + " seasons";
+			experienceWithTeamText.text = "With Team for " + athlete.seasonsWithTeam + " seasons";
 
 			for (int i = attributesGroupObj.transform.childCount - 1; i >= 0; i--) {
 				Destroy (attributesGroupObj.transform.GetChild (i).gameObject);
@@ -575,12 +512,22 @@ public class GameController : MonoBehaviour {
 				newAttributeLabel.GetComponentInChildren<Image> ().color = athlete.GetTeam ().teamColor;
 			}
 
-			for (int i = statisticsGroupObj.transform.childCount - 1; i >= 0; i--) {
-				Destroy (statisticsGroupObj.transform.GetChild (i).gameObject);
+			for (int i = seasonStatisticsGroupObj.transform.childCount - 1; i >= 0; i--) {
+				Destroy (seasonStatisticsGroupObj.transform.GetChild (i).gameObject);
 			}
 
 			for (int i = 0; i < athlete.statisticList.Count; i++) {
-				GameObject newStatisticLabel = Instantiate (textPrefab, statisticsGroupObj.transform.position, Quaternion.identity, statisticsGroupObj.transform);
+				GameObject newStatisticLabel = Instantiate (textPrefab, seasonStatisticsGroupObj.transform.position, Quaternion.identity, seasonStatisticsGroupObj.transform);
+				newStatisticLabel.GetComponentInChildren<Text> ().text = athlete.statisticList [i].statName + '\n' + athlete.statisticList [i].value;
+				newStatisticLabel.GetComponentInChildren<Image> ().color = athlete.GetTeam ().teamColor;
+			}
+
+			for (int i = careerStatisticsGroupObj.transform.childCount - 1; i >= 0; i--) {
+				Destroy (careerStatisticsGroupObj.transform.GetChild (i).gameObject);
+			}
+
+			for (int i = 0; i < athlete.statisticList.Count; i++) {
+				GameObject newStatisticLabel = Instantiate (textPrefab, careerStatisticsGroupObj.transform.position, Quaternion.identity, careerStatisticsGroupObj.transform);
 				newStatisticLabel.GetComponentInChildren<Text> ().text = athlete.statisticList [i].statName + '\n' + athlete.statisticList [i].value;
 				newStatisticLabel.GetComponentInChildren<Image> ().color = athlete.GetTeam ().teamColor;
 			}
@@ -591,20 +538,19 @@ public class GameController : MonoBehaviour {
 			if (athlete.manager && playerManager == null) {
 				activeOptionButtons++;
 
-				athleteOptionButtons [0].GetComponent<Image> ().enabled = true;
-				athleteOptionButtons [0].GetComponentInChildren<Text> ().enabled = true;
-
-				athleteOptionButtons [0].gameObject.SetActive (true);
+				athleteOptionButtons [0].GetComponent<Button> ().interactable = true;
 				athleteOptionButtons [0].GetComponentInChildren<Text> ().text = "Select Manager";
+
 				athleteOptionButtons [0].onClick.RemoveAllListeners ();
 				athleteOptionButtons [0].onClick.AddListener (() => SelectPlayerManager (athlete));
 			} else {
-				athleteOptionButtons [0].gameObject.SetActive (false);
+				athleteOptionButtons [0].GetComponent<Button> ().interactable = false;
+				athleteOptionButtons [0].GetComponentInChildren<Text> ().text = "";
 			}
 
 			for (int i = activeOptionButtons; i < athleteOptionButtons.Count; i++) {
-				athleteOptionButtons [i].GetComponent<Image> ().enabled = false;
-				athleteOptionButtons [i].GetComponentInChildren<Text> ().enabled = false;
+				athleteOptionButtons [i].GetComponent<Button> ().interactable = false;
+				athleteOptionButtons [i].GetComponentInChildren<Text> ().text = "";
 			}
 		}
 	}
@@ -613,11 +559,17 @@ public class GameController : MonoBehaviour {
 		bridgePanel.SetActive (false);
 		athleteDetailPanel.SetActive (false);
 
+		Vector3 originalTeamDetailPanelPosition = teamDetailPanel.transform.localPosition;
+		originalTeamDetailPanelPosition.y = -64;
+		StartCoroutine (MoveObjectFromCurrentPositionTo (teamDetailPanel, originalTeamDetailPanelPosition, 0.5f));
+
 		for (int i = 0; i < athleteOptionButtons.Count; i++) {
 			athleteOptionButtons [i].GetComponent<Image> ().enabled = false;
 			athleteOptionButtons [i].GetComponentInChildren<Text> ().enabled = false;
 		}
 	}
+
+	#endregion
 
 	//Throw this in with a back button function
 	public void ExitTeamDetailToCountyView() {
@@ -633,6 +585,8 @@ public class GameController : MonoBehaviour {
 	public void SelectPlayerManager(Athlete manager) {
 		Debug.Log(manager.name + " is the player now.");
 		playerManager = manager;
+
+		teamDetailPanel.SetActive (false);
 
 		ownerMessagePanel.SetActive (true);
 
@@ -754,7 +708,7 @@ public class GameController : MonoBehaviour {
 		AdvanceWeek ();
 	}
 
-
+	#region Advancing Week and Setting Matches
 
 	public void AdvanceWeek() {
 		week++;
@@ -840,7 +794,7 @@ public class GameController : MonoBehaviour {
 
 				team.transform.position = Vector2.MoveTowards (team.transform.position, destination, step);
 
-				if (team == playerTeam) { //If this team is the player's then have the camera follow along, This will need to be conditional
+				if (team == playerManager.GetTeam()) { //If this team is the player's then have the camera follow along, This will need to be conditional
 					Vector3 newCamPosition = team.transform.position;
 					newCamPosition.z = cameraStartPosition.z;
 					Camera.main.transform.position = newCamPosition;
@@ -875,7 +829,7 @@ public class GameController : MonoBehaviour {
 		match.awayTeam.opponentThisWeek = match.homeTeam;
 
 		match.matchStrings = new List<MatchText> (); //Resets the matchupStrings list
-		match.AddAndUpdateMatchFeed(new MatchText(match.GenerateWelcomeString(), Color.black, true));
+		//match.AddAndUpdateMatchFeed(new MatchText(match.GenerateWelcomeString(), Color.black, true));
 
 		//Instantiate a battle marker for this matchup and change the colors to represent the teams playing
 		Vector2 battleSpawn = match.homeTeam.transform.position;
@@ -895,18 +849,21 @@ public class GameController : MonoBehaviour {
 
 
 		//Everything below here is up for refactoring
-
+		/*
 		for (int i = 0; i < brimshireLeague.numFieldPositions; i++) {
 			match.fieldPositions.Add (new FieldPosition ());
 			match.fieldPositions [i].fieldPositionObj = fieldPositionsList [i];
 		}
+		*/
 
 		//SetActiveLineup (match);
 
 		if (match.homeTeam != playerManager.GetTeam () && match.awayTeam != playerManager.GetTeam ()) {
-			match.StartMatch ();
+			match.SimulateMatch ();
 		}
 	}
+
+	#endregion
 
 	public void DisplayMatchHoverPanel(Matchup match) {
 		matchHoverPanel.SetActive (true);
@@ -927,6 +884,8 @@ public class GameController : MonoBehaviour {
 		matchHomeColorPanel.color = match.homeTeam.teamColor;
 		matchAwayColorPanel.color = match.awayTeam.teamColor;
 	}
+
+	#region Universal Tool Functions
 
 	public IEnumerator ZoomAndShiftCameraTo(Vector3 destination, float cameraEndSize, float timeTaken) {
 		Vector3 cameraStartPos = Camera.main.transform.position;
@@ -949,6 +908,62 @@ public class GameController : MonoBehaviour {
 		Camera.main.orthographicSize = cameraEndSize;
 	}
 
+	public IEnumerator MoveObjectFromCurrentPositionTo(GameObject obj, Vector3 newPosition, float timeTaken) {
+		Vector3 startPosition = obj.transform.localPosition;
+
+		float timer = 0;
+		float step = 0;
+
+		while (timer < timeTaken) {
+			timer += Time.deltaTime;
+			step = timer / timeTaken;
+
+			obj.transform.localPosition = Vector3.Lerp (startPosition, newPosition, step);
+
+			yield return new WaitForFixedUpdate ();
+		}
+
+		obj.transform.localPosition = newPosition;
+	}
+
+	public void SetAthletePanel(GameObject athletePanel, Athlete athlete) { //This function greatly reduces code redundancy since it's an operation performed in team display and match lineup selection
+		Text nameText = athletePanel.transform.GetChild (0).GetComponent<Text> ();
+		Image body = athletePanel.transform.GetChild (1).GetComponent<Image> ();
+		Image jersey = athletePanel.transform.GetChild (2).GetComponent<Image> ();
+		Text positionText = athletePanel.transform.GetChild (3).GetComponent<Text> ();
+
+		athletePanel.GetComponent<Button> ().onClick.RemoveAllListeners ();
+
+		if (athlete != null) {
+			nameText.text = athlete.name;
+
+			if (!athlete.onField) {
+				body.enabled = true;
+				jersey.enabled = true;
+
+				body.sprite = athlete.bodySprite;
+				jersey.sprite = athlete.jerseySprite;
+				jersey.color = athlete.GetTeam ().teamColor;
+
+				//If it's in match display, else add a listener for athlete details
+				athletePanel.GetComponent<Button> ().onClick.AddListener (() => SelectAthlete (athlete));
+			} else {
+				body.enabled = false;
+				jersey.enabled = false;
+			}
+
+			positionText.text = athlete.positionName;
+		} else {
+			nameText.text = "";
+			body.enabled = false;
+			jersey.enabled = false;
+			positionText.text = "";
+		}
+	}
+
+	#endregion
+
+	#region Displaying Matches for Players
 
 	public void DisplayMatchUI (Matchup match) {
 		Debug.Log ("Displaying Match UI");
@@ -958,7 +973,12 @@ public class GameController : MonoBehaviour {
 
 		//Everything just pops up right now but eventually there should be an unravelling animation to bring it up
 		matchUIObject.SetActive (true);
-		//matchFieldObject.SetActive (true);
+		matchFieldObject.SetActive (true);
+		matchFog.SetActive (false);
+
+		matchSelectedAthlete.GetComponent<Button> ().onClick.RemoveAllListeners ();
+		matchSelectedAthlete.GetComponent<Button> ().onClick.AddListener (() => UnselectAthlete ());
+		matchSelectedAthlete.SetActive (false);
 
 		matchHomeTitle.transform.parent.GetComponent<Image> ().color = match.homeTeam.teamColor;
 		matchHomeTitle.text = match.homeTeam.teamName;
@@ -983,11 +1003,19 @@ public class GameController : MonoBehaviour {
 		awayPrimaryImage.sprite = match.awayTeam.logoPrimarySprite;
 		awayPrimaryImage.color = match.awayTeam.GetCity ().GetCounty ().GetCapitalCity ().GetTeamOfCity ().teamColor;
 
+		homeGoalzone.GetComponent<SpriteRenderer> ().color = match.homeTeam.teamColor;
+		awayGoalzone.GetComponent<SpriteRenderer> ().color = match.awayTeam.teamColor;
+
 		topText.transform.parent.gameObject.SetActive (false);
 
 		matchContinueButton.GetComponentInChildren<Text> ().text = "Start Match";
 		matchContinueButton.onClick.RemoveAllListeners ();
 		matchContinueButton.onClick.AddListener (() => match.StartMatch ());
+		matchContinueButton.gameObject.SetActive (false);
+
+		matchSimulateButton.GetComponentInChildren<Text> ().text = "Simulate Match";
+		matchSimulateButton.onClick.RemoveAllListeners ();
+		matchSimulateButton.onClick.AddListener (() => match.SimulateMatch ());
 
 		Vector3 matchPosition = match.battleMarker.transform.position;
 
@@ -1003,7 +1031,40 @@ public class GameController : MonoBehaviour {
 
 		StartCoroutine (ZoomAndShiftCameraTo (newCamPos, 1.12f, 2f));
 
-		Debug.Log ("CHECK");
+		TeamController playerTeam = null;
+		if (match.homeTeam == playerManager.GetTeam ()) {
+			playerTeam = match.homeTeam;
+			matchSelectedAthlete.transform.position = matchHomeShield.transform.position;
+
+			fieldGridManager.SetLineupPlacementCells (true);
+		} else if (match.awayTeam == playerManager.GetTeam ()) {
+			playerTeam = match.awayTeam;
+			matchSelectedAthlete.transform.position = matchAwayShield.transform.position;
+
+			fieldGridManager.SetLineupPlacementCells (false);
+		} else {
+			Debug.Log ("HUGE ERROR or maybe you spectating");
+		}
+
+		matchAthleteSelectionGroup.transform.parent.gameObject.SetActive (true);
+		matchAthleteSelectionGroup.transform.parent.GetComponent<Image> ().color = playerTeam.teamColor;
+
+		fieldGridManager.ClearFieldCells ();
+
+		UpdateRosterSelectionPanel (playerTeam);
+	}
+
+	public void UpdateRosterSelectionPanel(TeamController team) {
+		SetAthletePanel (matchManagerSelectionPanel, team.teamManager);
+
+		for (int i = 0; i < matchAthleteSelectionGroup.transform.childCount; i++) {
+			GameObject athletePanel = matchAthleteSelectionGroup.transform.GetChild (i).gameObject;
+			if (i < team.rosterList.Count) {
+				SetAthletePanel (athletePanel, team.rosterList [i]);
+			} else {
+				SetAthletePanel (athletePanel, null);
+			}
+		}
 	}
 
 	public void UndisplayMatchupUI(Matchup match) {
@@ -1018,6 +1079,77 @@ public class GameController : MonoBehaviour {
 		movementPaused = false;
 		canHoverMatches = true;
 	}
+
+	public void SelectAthlete(Athlete athlete) {
+		selectedAthleteForPlacement = athlete;
+
+		matchAthleteSelectionGroup.transform.parent.gameObject.SetActive (false);
+
+		matchSelectedAthlete.SetActive (true);
+
+		SetAthletePanel (matchSelectedAthlete, selectedAthleteForPlacement);
+		/*
+		matchSelectedAthlete.transform.GetChild (0).GetComponent<Text> ().text = athlete.name;
+		matchSelectedAthlete.transform.GetChild (1).GetComponent<Image> ().sprite = athlete.bodySprite;
+		matchSelectedAthlete.transform.GetChild (2).GetComponent<Image> ().sprite = athlete.jerseySprite;
+		matchSelectedAthlete.transform.GetChild (2).GetComponent<Image> ().color = athlete.GetTeam ().teamColor;
+		matchSelectedAthlete.transform.GetChild (3).GetComponent<Text> ().text = athlete.positionName;
+		*/
+
+		matchFog.SetActive (true);
+	}
+
+	public void UnselectAthlete() {
+		selectedAthleteForPlacement = null;
+
+		matchSelectedAthlete.SetActive (false);
+
+		matchAthleteSelectionGroup.transform.parent.gameObject.SetActive (true);
+	}
+
+	public void PlaceAthleteInGridCell(GameObject gridCell) {
+		Debug.Log ("Placing Athlete");
+
+		fieldGridManager.RemoveFog ();
+
+		GameObject placedAthleteFieldObj = Instantiate (athleteOnFieldPrefab, gridCell.transform.position, Quaternion.identity, gridCell.transform);
+
+		placedAthleteFieldObj.GetComponent<SpriteRenderer> ().sprite = selectedAthleteForPlacement.bodySprite;
+
+		SpriteRenderer jerseySpriteRend = placedAthleteFieldObj.transform.GetChild (0).GetComponent<SpriteRenderer> ();
+		jerseySpriteRend.sprite = selectedAthleteForPlacement.jerseySprite;
+		jerseySpriteRend.color = selectedAthleteForPlacement.GetTeam ().teamColor;
+
+		selectedAthleteForPlacement.onField = true;
+
+		selectedAthleteForPlacement = null;
+		matchSelectedAthlete.SetActive (false);
+	
+		TeamController checkedTeam = playerManager.GetTeam ();
+
+		int athletesOnFieldCount = 0;
+		if (checkedTeam.teamManager.onField == true) {
+			athletesOnFieldCount++;
+		}
+		for (int i = 0; i < checkedTeam.rosterList.Count; i++) {
+			if (checkedTeam.rosterList [i].onField == true) {
+				athletesOnFieldCount++;
+			}
+		}
+
+		if (athletesOnFieldCount == 3) {
+			matchContinueButton.gameObject.SetActive (true);
+		} else if (athletesOnFieldCount > 3) {
+			Debug.Log ("You letting too many chumps into the chumpery.");
+		} else {
+			matchAthleteSelectionGroup.transform.parent.gameObject.SetActive (true);
+			UpdateRosterSelectionPanel (playerManager.GetTeam()); //The player's team
+		}
+	}
+
+	#endregion
+
+	#region Concluding Week
 
 	public void LastMatchCompleted() {
 		Debug.Log ("All matches complete.");
@@ -1108,6 +1240,8 @@ public class GameController : MonoBehaviour {
 
 		CompleteBonusObjectives (owner.GetCompletedBonusObjectives (manager));
 	}
+
+	#endregion
 
 	//Might be some way to combine these two functions
 	public void CompleteBonusObjectives(List<Objective> completedBonusObjectives) {
@@ -1412,7 +1546,7 @@ public class GameController : MonoBehaviour {
 	}
 	*/
 
-
+	/*
 	public void StartWaitBeforeNextAttempt(Matchup match, Athlete athlete, Opportunity opp) {
 		if (athlete.GetTeam () == GameController.playerTeam) {
 
@@ -1429,6 +1563,7 @@ public class GameController : MonoBehaviour {
 			match.AttemptOpportunity (athlete, opp);
 		}
 	}
+
 
 	private IEnumerator WaitBeforeNextAttempt(Matchup match, Athlete athlete, Opportunity opp) {
 		yield return new WaitForSeconds (1);
@@ -1457,6 +1592,7 @@ public class GameController : MonoBehaviour {
 
 		matchNotificationObjList = new List<GameObject> ();
 	}
+	*/
 
 	/*
 

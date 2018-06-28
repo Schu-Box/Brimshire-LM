@@ -24,7 +24,7 @@ GameObject:
   - component: {fileID: 114141275034034810}
   - component: {fileID: 114432317127385510}
   m_Layer: 5
-  m_Name: Opportunity Button
+  m_Name: Opportunity Button (Unused)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

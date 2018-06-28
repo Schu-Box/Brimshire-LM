@@ -156,25 +156,17 @@ public class League {
 				} else if (unrankedTeams [j].winsThisSeason == highestAmountOfWins) { //If team j has the same amount of wins as the previous highest win holder
 					//Debug.Log("TIE in standings");
 
-					//Check head to head of team j and current best team
-					TeamController winnerOfHeadToHead = CheckHeadToHead(unrankedTeams[j], bestTeam);
-					if (winnerOfHeadToHead != null) { 
-						bestTeam = winnerOfHeadToHead;
-					} else { //If that's a tie, check goal differential between the two
-						//Debug.Log("STILL TIED");
+					TeamController betterGoalDifferential = CheckGoalDifferential (unrankedTeams [j], bestTeam);
+					if (betterGoalDifferential != null) {
+						bestTeam = betterGoalDifferential;
+					} else {
+						//Debug.Log ("Same goal differential. Still tied.");
 
-						TeamController betterGoalDifferential = CheckGoalDifferential (unrankedTeams [j], bestTeam);
-						if (betterGoalDifferential != null) {
-							bestTeam = betterGoalDifferential;
+						TeamController moreTotalGoals = CheckTotalGoals (unrankedTeams [j], bestTeam);
+						if (moreTotalGoals != null) {
+							bestTeam = moreTotalGoals;
 						} else {
-							//Debug.Log ("Same goal differential. Still tied.");
-
-							TeamController moreTotalGoals = CheckTotalGoals (unrankedTeams [j], bestTeam);
-							if (moreTotalGoals != null) {
-								bestTeam = moreTotalGoals;
-							} else {
-								//Debug.Log ("And they have the exact same amount of total goals.");
-							}
+							//Debug.Log ("And they have the exact same amount of total goals.");
 						}
 					}
 				}
@@ -191,6 +183,7 @@ public class League {
 		*/
 	}
 
+	/*
 	public TeamController CheckHeadToHead(TeamController team1, TeamController team2) {
 		int team1WinsVsTeam2 = 0;
 		int team2WinsVsTeam1 = 0;
@@ -226,6 +219,7 @@ public class League {
 			return null;
 		}
 	}
+	*/
 
 	public TeamController CheckGoalDifferential(TeamController team1, TeamController team2) {
 		int team1GoalDifferential = 0;

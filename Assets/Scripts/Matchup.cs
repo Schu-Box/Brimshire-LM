@@ -114,13 +114,17 @@ public class Matchup {
 		new Opportunity("steal", "Pick a Pocket", "Attempt to prevent the next opponent in this position's play and take the ball.", 100, 100, false, new List<string> {"R", "A", "T"})
 	};
 
-	public void StartMatch() {
-		Debug.Log("Starting Match");
+	public void SimulateMatch() {
+		Debug.Log("Simulate Match");
 
 		homeScore = Random.Range (0, 8);
 		awayScore = Random.Range (0, 7);
 
 		ConcludeMatch ();
+	}
+
+	public void StartMatch() {
+		Debug.Log("Starting Match");
 
 		/*
 		AthleteUI.lineupSelection = false;
@@ -156,7 +160,7 @@ public class Matchup {
 		*/
 	}
 
-
+	/*
 	public void BeginNextPlay() {
 		playNumber++;
 		Play play = playOrder [playNumber];
@@ -280,6 +284,7 @@ public class Matchup {
 
 		BeginNextPlay ();
 	}
+	*/
 
 	public void AssignAvailableOpportunities(Athlete athlete, Play play) {
 		athlete.availableOpportunities = new List<Opportunity> ();
@@ -400,6 +405,7 @@ public class Matchup {
 		return 0;
 	}
 
+	/*
 	public void AttemptOpportunity(Athlete athlete, Opportunity opp) {
 		string matchString = "";
 
@@ -602,6 +608,7 @@ public class Matchup {
 
 		BeginNextPlay ();
 	}
+	*/
 
 	//I probably don't need this function
 	public bool Roll(int chance) {
@@ -613,6 +620,8 @@ public class Matchup {
 
 		return success;
 	}
+
+	/*
 
 	//Could make this function take the relative field position to cut down on some lines
 	public void MoveAthleteToPosition(Athlete athlete, int newFieldPosition) {
@@ -640,6 +649,7 @@ public class Matchup {
 			}
 		}
 	}
+	*/
 
 	public List<Athlete> GetTeammates(List<Athlete> athletesBeingChecked, Athlete athlete) {
 		List<Athlete> teammates = new List<Athlete> ();
@@ -775,6 +785,7 @@ public class Matchup {
 
 		return null;
 	}
+	/*
 
 	public void Pass(Athlete passer, Athlete receiver) {
 		if (gameController.matchUI.activeSelf == true) {
@@ -872,8 +883,6 @@ public class Matchup {
 		if (gameController.matchUI.activeSelf == true) {
 			gameController.InstantiateMatchNotification (loser, "Turnover");
 		}
-
-
 	}
 
 	public void ChangePossession(Athlete newbie) {
@@ -887,6 +896,7 @@ public class Matchup {
 
 		InsertNextPlay (newbie, true);
 	}
+	*/
 
 	public void InsertNextPlay(Athlete athlete, bool withBall) {
 		Play nextPlay = new Play (athlete, withBall);
@@ -894,6 +904,8 @@ public class Matchup {
 	}
 
 	public void ConcludeMatch() {
+		GameController.movementPaused = false;
+
 		if (homeScore >= awayScore) { //home wins (REMOVE EQUAL WHEN IMPLEMENTING TIES)
 			winner = homeTeam;
 			homeTeamMarker.sortingOrder = 2;
@@ -920,35 +932,28 @@ public class Matchup {
 		if (gameController.matchUIObject.activeSelf == true) {
 			gameController.UndisplayMatchupUI (this);
 		}
-
-		//Debug.Log ("Simulated " + homeTeam.teamName + " vs " + awayTeam.teamName);
-
-		/*
-		for (int i = 0; i < activeHomeAthletes.Count; i++) {
-			activeHomeAthletes [i].onActiveRoster = false;
-			activeAwayAthletes [i].onActiveRoster = false;
+			
+		for (int i = 0; i < homeTeam.rosterList.Count; i++) {
+			homeTeam.rosterList [i].onField = false;
 		}
-		*/
+		homeTeam.teamManager.onField = false;
 
-		GameController.movementPaused = false;
-
-		int week = GameController.week;
+		for (int i = 0; i < awayTeam.rosterList.Count; i++) {
+			awayTeam.rosterList [i].onField = false;
+		}
+		awayTeam.teamManager.onField = false;
 
 		bool allTeamsPlayed = true;
-
-		for (int i = 0; i < homeTeam.league.weeklyListOfMatchupsForSeason [week].Count; i++) {
-			if (homeTeam.league.weeklyListOfMatchupsForSeason [week] [i].winner == null) {
+		for (int i = 0; i < homeTeam.league.weeklyListOfMatchupsForSeason [GameController.week].Count; i++) {
+			if (homeTeam.league.weeklyListOfMatchupsForSeason [GameController.week] [i].winner == null) {
 				allTeamsPlayed = false;
 			}
 		}
-
 		if (allTeamsPlayed == true) {
 			if (homeTeam.league == gameController.brimshireLeague) { //If this is the primary league's last game
 				gameController.LastMatchCompleted ();
 			}
 		}
-
-
 	}
 
 
