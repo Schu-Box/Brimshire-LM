@@ -17,10 +17,12 @@ public class Athlete {
 		" the Seer", ", Chooken Chaser", " the Prick", " the Insufferable", " Stooper", " Viceroy"
 	};
 
+	/*
 	private List<string> positionNames = new List<string> {
 		"Striker", "Defender", "Protector", "Guardian", "Winger", "Midfielder", "Playmaker", "Boomer", "Bruiser", "Builder", "Medic", "Center", "Wildcard",
 		"Rookie", "Disruptor", "Charger", "Lunatic", "Student", "Scout"
 	};
+	*/
 
 	private Lexic.NameGenerator nameGen = GameObject.FindGameObjectWithTag("NameGenerator").GetComponent<Lexic.NameGenerator>();
 	private GameController gameController = GameObject.FindObjectOfType<GameController>();
@@ -38,8 +40,10 @@ public class Athlete {
 
 	public bool manager;
 	public bool onField = false;
+	public int rowNum = -1;
+	public int columnNum = -1;
 
-	public bool starting = false; //Unused
+	//public bool starting = false; //Unused
 
 
 	public List<Attribute> attributeList = new List<Attribute> ();
@@ -74,8 +78,8 @@ public class Athlete {
 		age += Random.Range (6, 12);
 		originCountyName = gameController.countyObjects [Random.Range (0, gameController.countyObjects.Count)].GetComponent<CountyController> ().countyName;
 
-		attributeList.Add (new Attribute ("Strength")); //Things like punches
 		attributeList.Add (new Attribute ("Speed")); //Things like movement time
+		attributeList.Add (new Attribute ("Strength")); //Things like punches
 		attributeList.Add (new Attribute ("Reflex")); //Things like saving the ball and turn order 
 		attributeList.Add (new Attribute ("Accuracy")); //Their likelihood to score and pass
 		attributeList.Add (new Attribute ("Ball Control")); //Securing the ball, preventing steals
@@ -86,7 +90,7 @@ public class Athlete {
 		//Strategy? Awareness?
 
 		for (int i = 0; i < attributeList.Count; i++) {
-			attributeList [i].value = Random.Range (0, 2);
+			attributeList [i].value = Random.Range (1, 21);
 		}
 
 		//statisticList.Add (new Statistic ("Seasons Played"));
@@ -101,7 +105,20 @@ public class Athlete {
 		statisticList.Add (new Statistic ("Shoves"));
 
 		//positionName = positionNames [Random.Range (0, positionNames.Count)];
+	}
 
+	public int GetAttributeValue(string id) {
+		int v = -1;
+		for (int i = 0; i < attributeList.Count; i++) {
+			if (attributeList [i].attributeName.ToLower() == id.ToLower()) {
+				v = attributeList [i].value;
+			}
+		}
+
+		if (v == -1) {
+			Debug.Log ("Attribute " + id + " doesn't exist and you a fool.");
+		}
+		return v;
 	}
 
 	public TeamController GetTeam() {
@@ -115,13 +132,6 @@ public class Athlete {
 
 
 	//Everything below here should eventually be removed
-	public AthleteUI athUI; //I dunno if I should have this or nah
-
-	public bool onActiveRoster = false;
-
-	//Could consider creating an AthleteState obj
-	public int fieldPosition; //0 is home team's goal, 1 is home's midfield, 2 is away's midfield, 3 is away team's goal
-	public GameObject fieldUI;
 
 	public List<Opportunity> availableOpportunities = new List<Opportunity>();
 	public bool defending;

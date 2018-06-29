@@ -21,6 +21,19 @@ public class MatchText {
 }
 
 public class Opportunity {
+	public string id;
+	public string name;
+	public string description;
+
+	public Opportunity(string identifier, string officialName, string descriptionOfOpportunity) {
+		id = identifier;
+		name = officialName;
+		description = descriptionOfOpportunity;
+	}
+}
+
+/*
+public class Opportunity {
 	public string name;
 	public string oppName;
 	public string description;
@@ -39,6 +52,7 @@ public class Opportunity {
 		statsUsed = stats;
 	}
 }
+*/
 
 public class Play {
 	//public Matchup match; //May not necessarily need a reference to the match itself.
@@ -52,9 +66,20 @@ public class Play {
 	}
 }
 
+/*
 public class FieldPosition {
 	public List<Athlete> athletesInPosition = new List<Athlete>();
 	public GameObject fieldPositionObj;
+}
+*/
+
+public class FieldTile {
+
+	public List<Athlete> athletesOnTile = new List<Athlete>();
+
+	public FieldTile() {
+
+	}
 }
 
 public class Matchup {
@@ -66,7 +91,6 @@ public class Matchup {
 	public int weekIndex;
 	public TeamController homeTeam;
 	public TeamController awayTeam;
-	public bool firstTeamPresent = false;
 
 	public Matchup(League l, int week, TeamController home, TeamController away) {
 		weekIndex = week;
@@ -76,6 +100,20 @@ public class Matchup {
 		league = l;
 	}
 
+	public bool firstTeamPresent = false;
+	//Before Match ^
+
+	public int tilesInColumn = 2;
+	public int tilesInRow = 4;
+	public List<List<FieldTile>> fieldGrid = new List<List<FieldTile>> ();
+
+	//During Match v
+	public int numAthletesOnFieldPerTeam = 3;
+
+	public List<Athlete> athletesOnField = new List<Athlete> ();
+
+
+	//Old and being refactorized
 	public List<Play> playOrder = new List<Play> ();
 	public int playNumber = -1;
 	public int changesInPossession = 0;
@@ -90,13 +128,10 @@ public class Matchup {
 	public SpriteRenderer awayTeamMarker;
 	public List<MatchText> matchStrings = new List<MatchText> ();
 
+	/*
 	public bool postseasonMatch = false;
 
 	private bool secondHalf = false;
-
-	public List<FieldPosition> fieldPositions = new List<FieldPosition> (); //This is a linear array so if the field is expanded horizontally then needs rework, or continue lineary
-	public List<Athlete> activeHomeAthletes = new List<Athlete>();
-	public List<Athlete> activeAwayAthletes = new List<Athlete>();
 
 	private List<Opportunity> opportunityList = new List<Opportunity> {
 		//Opportunities w/ the Ball
@@ -113,6 +148,50 @@ public class Matchup {
 		new Opportunity("protect", "Protect the Net", "You have a chance to block the next shot on goal.", 100, 100, false, new List<string> {"R", "A"}),
 		new Opportunity("steal", "Pick a Pocket", "Attempt to prevent the next opponent in this position's play and take the ball.", 100, 100, false, new List<string> {"R", "A", "T"})
 	};
+	*/
+
+	private List<Opportunity> basicOpportunityList = new List<Opportunity> {
+		new Opportunity("shoot", "Take the Shot", "Take a shot on goal.")
+	};
+
+	public void SetField() {
+		fieldGrid = new List<List<FieldTile>> ();
+
+		for (int i = 0; i < tilesInRow; i++) {
+			fieldGrid.Add (new List<FieldTile> ());
+			for (int j = 0; j < tilesInColumn; j++) {
+				fieldGrid [i].Add (new FieldTile ());
+			}
+		}
+	}
+
+	public void SetLineup(TeamController team) {
+		if (team == homeTeam) {
+			for (int i = 0; i < numAthletesOnFieldPerTeam; i++) {
+				int randomX = Random.Range (0, (fieldGrid.Count / 2));
+				int randomY = Random.Range (0, fieldGrid [randomX].Count);
+
+				AddAthleteToFieldGrid (team.rosterList [i], randomX, randomY);
+			}
+		} else if (team == awayTeam) {
+			for (int i = 0; i < numAthletesOnFieldPerTeam; i++) {
+				int randomX = Random.Range ((fieldGrid.Count / 2), fieldGrid.Count);
+				int randomY = Random.Range (0, fieldGrid [randomX].Count);
+
+				AddAthleteToFieldGrid (team.rosterList [i], randomX, randomY);
+			}
+		} else {
+			Debug.Log ("C'mon man that team isn't even in this match. You stoopid.");
+		}
+	}
+
+	public void AddAthleteToFieldGrid(Athlete athlete, int gridX, int gridY) {
+		fieldGrid [gridX] [gridY].athletesOnTile.Add (athlete);
+
+		athlete.onField = true;
+		athlete.rowNum = gridX;
+		athlete.columnNum = gridY;
+	}
 
 	public void SimulateMatch() {
 		Debug.Log("Simulate Match");
@@ -124,10 +203,36 @@ public class Matchup {
 	}
 
 	public void StartMatch() {
-		Debug.Log("Starting Match");
+		Debug.Log ("Starting Match");
+
+		athletesOnField = new List<Athlete> ();
+
+		if (homeTeam.teamManager.onField) {
+			athletesOnField.Add (homeTeam.teamManager);
+		}
+		if (awayTeam.teamManager.onField) {
+			athletesOnField.Add (awayTeam.teamManager);
+		}
+
+		for (int i = 0; i < homeTeam.rosterList.Count; i++) {
+			if (homeTeam.rosterList [i].onField) {
+				athletesOnField.Add (homeTeam.rosterList [i]);
+			}
+		}
+		for (int i = 0; i < awayTeam.rosterList.Count; i++) {
+			if (awayTeam.rosterList [i].onField) {
+				athletesOnField.Add (awayTeam.rosterList [i]);
+			}
+		}
+
+		DetermineInitiativeOrder ();
+
+		if (gameController.matchFieldParent.activeSelf == true) {
+			gameController.DisplayStartedMatchUI (this);
+		}
+
 
 		/*
-		AthleteUI.lineupSelection = false;
 
 		if (gameController.matchUI.activeSelf == true) {
 			gameController.matchInteractionButton.onClick.RemoveAllListeners ();
@@ -158,6 +263,44 @@ public class Matchup {
 		BeginNextPlay ();
 
 		*/
+	}
+
+	public void DetermineInitiativeOrder() {
+		List<Athlete> athleteSpeedOrder = new List<Athlete> ();
+
+		for(int a = athletesOnField.Count - 1; a >= 0; a--) {
+			Athlete speediestAthlete = null;
+			int speediestSpeed = 0;
+
+			for (int i = 0; i < athletesOnField.Count; i++) {
+				if (athletesOnField [i].GetAttributeValue("Speed") > speediestSpeed) {
+					speediestAthlete = athletesOnField [i];
+					speediestSpeed = speediestAthlete.GetAttributeValue ("Speed");
+				} else if (athletesOnField [i].GetAttributeValue("Speed") == speediestSpeed) {
+					//Check for reflexes
+					Debug.Log("Same speed, checking reflexes");
+					if (athletesOnField [i].GetAttributeValue ("Reflex") > speediestAthlete.GetAttributeValue ("Reflex")) {
+						speediestAthlete = athletesOnField [i];
+						speediestSpeed = speediestAthlete.GetAttributeValue ("Speed");
+					}
+				}
+			}
+
+			athleteSpeedOrder.Add (speediestAthlete);
+			athletesOnField.Remove (speediestAthlete);
+		}
+
+		athletesOnField = athleteSpeedOrder;
+
+		for (int i = 0; i < athletesOnField.Count; i++) {
+			Debug.Log (athletesOnField [i].name + " speed " + athletesOnField [i].attributeList [0].value);
+		}
+	}
+
+	public void BeginNextPlay() {
+		if (gameController.matchFieldParent.activeSelf == true) {
+			//Light up that athlete's display UI on the field athlete panel
+		}
 	}
 
 	/*
@@ -286,6 +429,7 @@ public class Matchup {
 	}
 	*/
 
+	/*
 	public void AssignAvailableOpportunities(Athlete athlete, Play play) {
 		athlete.availableOpportunities = new List<Opportunity> ();
 
@@ -330,11 +474,6 @@ public class Matchup {
 			} else if (athleteRelativePosition == 3) {
 				athlete.availableOpportunities.Add (GetOpportunity ("shoot"));
 
-				/*
-				if (athlete.force >= 2) {
-					athlete.availableOpportunities.Add (GetOpportunity ("dunk"));
-				}
-				*/
 			} else {
 				Debug.Log (athlete.name + " is in a non-existant field position.");
 			}
@@ -377,6 +516,7 @@ public class Matchup {
 		}
 		return null;
 	}
+	*/
 
 
 	public int GetAthleteChanceForOpportunity(Athlete athlete, Opportunity opp) {
@@ -699,6 +839,7 @@ public class Matchup {
 		return stealers;
 	}
 
+			/*
 	public List<Athlete> CheckForKeepers(TeamController teamBeingChecked) {
 		List<Athlete> keepers = new List<Athlete> ();
 
@@ -720,9 +861,11 @@ public class Matchup {
 
 		return keepers;
 	}
+	*/
 
 
 	//Convert this into a turnover function instead
+	/*
 	public Athlete GetFurthestOpponent(Athlete athlete) {
 		List<Athlete> potentialNextAthletes = new List<Athlete> ();
 		if (athlete.GetTeam () == homeTeam) {
@@ -743,11 +886,11 @@ public class Matchup {
 
 		return potentialNextAthletes [Random.Range (0, potentialNextAthletes.Count)];
 	}
+	*/
 
 
 
-
-
+	/*
 	public Athlete AttemptDefense(List<Athlete> defenderList, Athlete target) {
 		if (defenderList == null) {
 			return null;
@@ -785,8 +928,9 @@ public class Matchup {
 
 		return null;
 	}
-	/*
+	*/
 
+	/*
 	public void Pass(Athlete passer, Athlete receiver) {
 		if (gameController.matchUI.activeSelf == true) {
 			gameController.InstantiateMatchNotification (passer, "Pass");
@@ -935,13 +1079,21 @@ public class Matchup {
 			
 		for (int i = 0; i < homeTeam.rosterList.Count; i++) {
 			homeTeam.rosterList [i].onField = false;
+			homeTeam.rosterList [i].rowNum = -1;
+			homeTeam.rosterList [i].columnNum = -1;
 		}
 		homeTeam.teamManager.onField = false;
+		homeTeam.teamManager.rowNum = -1;
+		homeTeam.teamManager.columnNum = -1;
 
 		for (int i = 0; i < awayTeam.rosterList.Count; i++) {
 			awayTeam.rosterList [i].onField = false;
+			awayTeam.rosterList [i].rowNum = -1;
+			awayTeam.rosterList [i].columnNum = -1;
 		}
 		awayTeam.teamManager.onField = false;
+		awayTeam.teamManager.rowNum = -1;
+		awayTeam.teamManager.columnNum = -1;
 
 		bool allTeamsPlayed = true;
 		for (int i = 0; i < homeTeam.league.weeklyListOfMatchupsForSeason [GameController.week].Count; i++) {

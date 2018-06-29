@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
+//Tryna delete this?
 public class OpportunityUIButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler {
 
 	public Opportunity opportunity;

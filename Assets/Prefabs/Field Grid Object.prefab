@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 212633029747833272}
   - component: {fileID: 114426992638692516}
   - component: {fileID: 61043611639705900}
+  - component: {fileID: 114490985715445464}
   m_Layer: 0
   m_Name: Field Grid Object
   m_TagString: Untagged
@@ -65,6 +66,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc459b8c1b3fc48d19b1fd271a0e4c56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  columnNum: 0
+  rowNum: 0
+  canSelect: 0
+--- !u!114 &114490985715445464
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1448814560172858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -2095666955, guid: f70555f144d8491a825f0804e09c671c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 4
+  m_StartCorner: 0
+  m_StartAxis: 0
+  m_CellSize: {x: 1, y: 1}
+  m_Spacing: {x: 1, y: 1}
+  m_Constraint: 0
+  m_ConstraintCount: 2
 --- !u!212 &212633029747833272
 SpriteRenderer:
   m_ObjectHideFlags: 1
@@ -123,5 +150,5 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: 4, y: 4}
   m_Pivot: {x: 0.5, y: 0.5}

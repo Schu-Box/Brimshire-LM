@@ -95,7 +95,7 @@ public class TeamController : MonoBehaviour {
 		} else {
 			rosterList.Add (athlete);
 			athlete.SetTeam (this);
-			athlete.onActiveRoster = false;
+			//athlete.onActiveRoster = false;
 		}
 
 		if (this == GameController.displayTeam) {

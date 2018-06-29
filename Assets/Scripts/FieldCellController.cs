@@ -5,6 +5,9 @@ using UnityEngine.EventSystems;
 
 public class FieldCellController : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler {
 
+	public int columnNum;
+	public int rowNum;
+
 	public bool canSelect = false;
 
 	private GameController gameController;
@@ -21,7 +24,7 @@ public class FieldCellController : MonoBehaviour, IPointerClickHandler, IPointer
 			if (GameController.selectedAthleteForPlacement != null) {
 				Debug.Log ("Selected Position");
 
-				gameController.PlaceAthleteInGridCell (gameObject);
+				gameController.PlaceAthleteInGridCell (GameController.selectedAthleteForPlacement, this);
 			}
 		}
 	}

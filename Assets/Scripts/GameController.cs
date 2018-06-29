@@ -97,10 +97,16 @@ public class GameController : MonoBehaviour {
 	public Image matchAwayShield;
 	public GameObject matchManagerSelectionPanel;
 	public GameObject matchAthleteSelectionGroup;
-	public GameObject matchSelectedAthlete;
+	public AthletePanel matchSelectedAthletePanel;
+
+	public GameObject fieldAthletesPanel;
+	public GameObject fieldHomeAthletesGroup;
+	public GameObject fieldAwayAthletesGroup;
+	public GameObject homeMatchPanel;
 
 	[Header("Match Field")]
-	public GameObject matchFieldObject;
+	public GameObject matchFieldParent;
+	public GameObject matchGridHolder;
 	public GameObject homeGoalzone;
 	public GameObject awayGoalzone;
 	public GameObject matchFog;
@@ -167,7 +173,7 @@ public class GameController : MonoBehaviour {
 		teamDetailPanel.SetActive (false);
 		ownerMessagePanel.SetActive (false);
 		matchHoverPanel.SetActive (false);
-		matchFieldObject.SetActive (false);
+		matchFieldParent.SetActive (false);
 		matchUIObject.SetActive (false);
 		leaguePanel.SetActive (false);
 
@@ -175,7 +181,8 @@ public class GameController : MonoBehaviour {
 
 		races.Add (new Race ("Chooken", raceSpriteList [0], raceJerseyList [0]));
 		races.Add (new Race ("Laguna", raceSpriteList [1], raceJerseyList [1]));
-		races.Add (new Race ("Garump", raceSpriteList [2], raceJerseyList [2]));
+		//races.Add (new Race ("Ganorp", raceSpriteList [2], raceJerseyList [2]));
+		//races.Add (new Race ("Garump", raceSpriteList [3], raceJerseyList [3]));
 
 		brimshireLeague = new League (new List<TeamController> ());
 		brimshireLeague.goldRewardPerWin = 10;
@@ -813,10 +820,6 @@ public class GameController : MonoBehaviour {
 
 			SetupMatch (team.seasonMatchups [week]);
 
-			if (playerManager.GetTeam() == team.seasonMatchups [week].homeTeam || playerManager.GetTeam() == team.seasonMatchups [week].awayTeam) { //If the team is owned by the player, display match panel
-				DisplayMatchUI (team.seasonMatchups[week]);
-			}
-
 		} else { //Otherwise, set this bool to true so that games can only be played when both teams are present
 			team.seasonMatchups [week].firstTeamPresent = true;
 		}
@@ -828,38 +831,29 @@ public class GameController : MonoBehaviour {
 		match.homeTeam.opponentThisWeek = match.awayTeam;
 		match.awayTeam.opponentThisWeek = match.homeTeam;
 
-		match.matchStrings = new List<MatchText> (); //Resets the matchupStrings list
+		//match.matchStrings = new List<MatchText> (); //Resets the matchupStrings list
 		//match.AddAndUpdateMatchFeed(new MatchText(match.GenerateWelcomeString(), Color.black, true));
 
-		//Instantiate a battle marker for this matchup and change the colors to represent the teams playing
-		Vector2 battleSpawn = match.homeTeam.transform.position;
+		Vector2 battleSpawn = match.homeTeam.transform.position; //Instantiate a battle marker for this matchup
 		battleSpawn.y = battleSpawn.y - 0.2f;
 		match.battleMarker = Instantiate (battleIndicator, battleSpawn, Quaternion.identity);
 		SpriteRenderer[] battlerSprites = new SpriteRenderer[3];
 		battlerSprites = match.battleMarker.GetComponentsInChildren<SpriteRenderer> ();
-
 		match.homeTeamMarker = battlerSprites [1];
 		match.awayTeamMarker = battlerSprites [2];
-
-		match.awayTeamMarker.color = match.awayTeam.teamColor;
+		match.awayTeamMarker.color = match.awayTeam.teamColor; //change the colors to represent the teams playing
 		match.homeTeamMarker.color = match.homeTeam.teamColor;
-
 		match.battleMarker.GetComponent<BattleIndicator> ().match = match;
 
-
-
-		//Everything below here is up for refactoring
-		/*
-		for (int i = 0; i < brimshireLeague.numFieldPositions; i++) {
-			match.fieldPositions.Add (new FieldPosition ());
-			match.fieldPositions [i].fieldPositionObj = fieldPositionsList [i];
-		}
-		*/
-
-		//SetActiveLineup (match);
+		match.SetField ();
 
 		if (match.homeTeam != playerManager.GetTeam () && match.awayTeam != playerManager.GetTeam ()) {
+			match.SetLineup (match.homeTeam);
+			match.SetLineup (match.awayTeam);
+
 			match.SimulateMatch ();
+		} else {
+			DisplayMatchUI (match);
 		}
 	}
 
@@ -926,41 +920,6 @@ public class GameController : MonoBehaviour {
 		obj.transform.localPosition = newPosition;
 	}
 
-	public void SetAthletePanel(GameObject athletePanel, Athlete athlete) { //This function greatly reduces code redundancy since it's an operation performed in team display and match lineup selection
-		Text nameText = athletePanel.transform.GetChild (0).GetComponent<Text> ();
-		Image body = athletePanel.transform.GetChild (1).GetComponent<Image> ();
-		Image jersey = athletePanel.transform.GetChild (2).GetComponent<Image> ();
-		Text positionText = athletePanel.transform.GetChild (3).GetComponent<Text> ();
-
-		athletePanel.GetComponent<Button> ().onClick.RemoveAllListeners ();
-
-		if (athlete != null) {
-			nameText.text = athlete.name;
-
-			if (!athlete.onField) {
-				body.enabled = true;
-				jersey.enabled = true;
-
-				body.sprite = athlete.bodySprite;
-				jersey.sprite = athlete.jerseySprite;
-				jersey.color = athlete.GetTeam ().teamColor;
-
-				//If it's in match display, else add a listener for athlete details
-				athletePanel.GetComponent<Button> ().onClick.AddListener (() => SelectAthlete (athlete));
-			} else {
-				body.enabled = false;
-				jersey.enabled = false;
-			}
-
-			positionText.text = athlete.positionName;
-		} else {
-			nameText.text = "";
-			body.enabled = false;
-			jersey.enabled = false;
-			positionText.text = "";
-		}
-	}
-
 	#endregion
 
 	#region Displaying Matches for Players
@@ -973,12 +932,14 @@ public class GameController : MonoBehaviour {
 
 		//Everything just pops up right now but eventually there should be an unravelling animation to bring it up
 		matchUIObject.SetActive (true);
-		matchFieldObject.SetActive (true);
+		matchFieldParent.SetActive (true);
+
 		matchFog.SetActive (false);
 
-		matchSelectedAthlete.GetComponent<Button> ().onClick.RemoveAllListeners ();
-		matchSelectedAthlete.GetComponent<Button> ().onClick.AddListener (() => UnselectAthlete ());
-		matchSelectedAthlete.SetActive (false);
+		fieldGridManager.ClearFieldCells ();
+
+		matchSelectedAthletePanel.gameObject.SetActive (false);
+		fieldAthletesPanel.SetActive (false);
 
 		matchHomeTitle.transform.parent.GetComponent<Image> ().color = match.homeTeam.teamColor;
 		matchHomeTitle.text = match.homeTeam.teamName;
@@ -1019,7 +980,7 @@ public class GameController : MonoBehaviour {
 
 		Vector3 matchPosition = match.battleMarker.transform.position;
 
-		matchFieldObject.transform.position = matchPosition;
+		matchFieldParent.transform.position = matchPosition;
 		matchUIObject.transform.position = matchPosition;
 
 		//Zoom the camera onto the matchUIObject
@@ -1031,17 +992,35 @@ public class GameController : MonoBehaviour {
 
 		StartCoroutine (ZoomAndShiftCameraTo (newCamPos, 1.12f, 2f));
 
+		fieldGridManager.SetFieldGridManager (match);
+
 		TeamController playerTeam = null;
 		if (match.homeTeam == playerManager.GetTeam ()) {
 			playerTeam = match.homeTeam;
-			matchSelectedAthlete.transform.position = matchHomeShield.transform.position;
+			matchSelectedAthletePanel.transform.position = matchHomeShield.transform.position;
 
-			fieldGridManager.SetLineupPlacementCells (true);
+			fieldGridManager.SetValidLineupPlacementCells (true);
+
+			match.SetLineup (match.awayTeam);
+			for (int i = 0; i < match.awayTeam.rosterList.Count; i++) {
+				Athlete athlete = match.awayTeam.rosterList [i];
+				if (athlete.onField) {
+					PlaceAthleteInGridCell (athlete, fieldGridManager.GetFieldCellObject (athlete.rowNum, athlete.columnNum));
+				}
+			}
 		} else if (match.awayTeam == playerManager.GetTeam ()) {
 			playerTeam = match.awayTeam;
-			matchSelectedAthlete.transform.position = matchAwayShield.transform.position;
+			matchSelectedAthletePanel.transform.position = matchAwayShield.transform.position;
 
-			fieldGridManager.SetLineupPlacementCells (false);
+			fieldGridManager.SetValidLineupPlacementCells (false);
+
+			match.SetLineup (match.homeTeam);
+			for (int i = 0; i < match.homeTeam.rosterList.Count; i++) {
+				Athlete athlete = match.homeTeam.rosterList [i];
+				if (athlete.onField) {
+					PlaceAthleteInGridCell (athlete, fieldGridManager.GetFieldCellObject (athlete.rowNum, athlete.columnNum));
+				}
+			}
 		} else {
 			Debug.Log ("HUGE ERROR or maybe you spectating");
 		}
@@ -1049,26 +1028,24 @@ public class GameController : MonoBehaviour {
 		matchAthleteSelectionGroup.transform.parent.gameObject.SetActive (true);
 		matchAthleteSelectionGroup.transform.parent.GetComponent<Image> ().color = playerTeam.teamColor;
 
-		fieldGridManager.ClearFieldCells ();
-
 		UpdateRosterSelectionPanel (playerTeam);
 	}
 
 	public void UpdateRosterSelectionPanel(TeamController team) {
-		SetAthletePanel (matchManagerSelectionPanel, team.teamManager);
+		matchManagerSelectionPanel.GetComponent<AthletePanel> ().SetAthletePanel (team.teamManager);
 
 		for (int i = 0; i < matchAthleteSelectionGroup.transform.childCount; i++) {
-			GameObject athletePanel = matchAthleteSelectionGroup.transform.GetChild (i).gameObject;
+			AthletePanel athletePanel = matchAthleteSelectionGroup.transform.GetChild (i).GetComponent<AthletePanel> ();
 			if (i < team.rosterList.Count) {
-				SetAthletePanel (athletePanel, team.rosterList [i]);
+				athletePanel.SetAthletePanel (team.rosterList [i]);
 			} else {
-				SetAthletePanel (athletePanel, null);
+				athletePanel.SetAthletePanel (null);
 			}
 		}
 	}
 
 	public void UndisplayMatchupUI(Matchup match) {
-		matchFieldObject.SetActive (false);
+		matchFieldParent.SetActive (false);
 		matchUIObject.SetActive (false);
 
 		topText.transform.parent.gameObject.SetActive (true);
@@ -1085,48 +1062,51 @@ public class GameController : MonoBehaviour {
 
 		matchAthleteSelectionGroup.transform.parent.gameObject.SetActive (false);
 
-		matchSelectedAthlete.SetActive (true);
-
-		SetAthletePanel (matchSelectedAthlete, selectedAthleteForPlacement);
-		/*
-		matchSelectedAthlete.transform.GetChild (0).GetComponent<Text> ().text = athlete.name;
-		matchSelectedAthlete.transform.GetChild (1).GetComponent<Image> ().sprite = athlete.bodySprite;
-		matchSelectedAthlete.transform.GetChild (2).GetComponent<Image> ().sprite = athlete.jerseySprite;
-		matchSelectedAthlete.transform.GetChild (2).GetComponent<Image> ().color = athlete.GetTeam ().teamColor;
-		matchSelectedAthlete.transform.GetChild (3).GetComponent<Text> ().text = athlete.positionName;
-		*/
+		matchSelectedAthletePanel.gameObject.SetActive (true);
+		matchSelectedAthletePanel.SetAthletePanel (selectedAthleteForPlacement);
+		matchSelectedAthletePanel.button.onClick.RemoveAllListeners ();
+		matchSelectedAthletePanel.button.onClick.AddListener (() => UnselectAthlete ());
 
 		matchFog.SetActive (true);
 	}
 
 	public void UnselectAthlete() {
+		fieldGridManager.RemoveFog ();
+
 		selectedAthleteForPlacement = null;
 
-		matchSelectedAthlete.SetActive (false);
+		matchSelectedAthletePanel.gameObject.SetActive (false);
 
 		matchAthleteSelectionGroup.transform.parent.gameObject.SetActive (true);
 	}
 
-	public void PlaceAthleteInGridCell(GameObject gridCell) {
+	public void PlaceAthleteInGridCell(Athlete placedAthlete, FieldCellController gridCell) {
 		Debug.Log ("Placing Athlete");
+
+		selectedAthleteForPlacement = null;
+		matchSelectedAthletePanel.gameObject.SetActive (false);
 
 		fieldGridManager.RemoveFog ();
 
 		GameObject placedAthleteFieldObj = Instantiate (athleteOnFieldPrefab, gridCell.transform.position, Quaternion.identity, gridCell.transform);
-
-		placedAthleteFieldObj.GetComponent<SpriteRenderer> ().sprite = selectedAthleteForPlacement.bodySprite;
-
+		placedAthleteFieldObj.GetComponent<SpriteRenderer> ().sprite = placedAthlete.bodySprite;
 		SpriteRenderer jerseySpriteRend = placedAthleteFieldObj.transform.GetChild (0).GetComponent<SpriteRenderer> ();
-		jerseySpriteRend.sprite = selectedAthleteForPlacement.jerseySprite;
-		jerseySpriteRend.color = selectedAthleteForPlacement.GetTeam ().teamColor;
-
-		selectedAthleteForPlacement.onField = true;
-
-		selectedAthleteForPlacement = null;
-		matchSelectedAthlete.SetActive (false);
+		jerseySpriteRend.sprite = placedAthlete.jerseySprite;
+		jerseySpriteRend.color = placedAthlete.GetTeam ().teamColor;
 	
-		TeamController checkedTeam = playerManager.GetTeam ();
+		if (gridCell.columnNum >= (fieldGridManager.fieldGridCells.Count / 2)) {
+			Quaternion newQuaternion = Quaternion.identity;
+			newQuaternion.eulerAngles = new Vector3 (0, 180, 0);
+			placedAthleteFieldObj.transform.rotation = newQuaternion;
+		}
 
+
+		if(!placedAthlete.onField) { //If the athlete is already on the field in data then don't put a copy up in there
+			placedAthlete.GetTeam ().seasonMatchups [week].AddAthleteToFieldGrid (placedAthlete, gridCell.columnNum, gridCell.rowNum); //Put the athlete in the grid data
+		}
+
+
+		TeamController checkedTeam = playerManager.GetTeam ();
 		int athletesOnFieldCount = 0;
 		if (checkedTeam.teamManager.onField == true) {
 			athletesOnFieldCount++;
@@ -1144,6 +1124,30 @@ public class GameController : MonoBehaviour {
 		} else {
 			matchAthleteSelectionGroup.transform.parent.gameObject.SetActive (true);
 			UpdateRosterSelectionPanel (playerManager.GetTeam()); //The player's team
+		}
+	}
+
+	public void DisplayStartedMatchUI(Matchup match) {
+		Debug.Log ("Displaying Field Athlete Panel");
+
+		matchContinueButton.gameObject.SetActive (false);
+
+		fieldAthletesPanel.SetActive (true);
+		fieldHomeAthletesGroup.GetComponent<Image> ().color = match.homeTeam.teamColor;
+		fieldAwayAthletesGroup.GetComponent<Image> ().color = match.awayTeam.teamColor;
+
+		Debug.Log (match.athletesOnField.Count);
+
+		int homeAthletesDisplayed = 0;
+		int awayAthletesDisplayed = 0;
+		for (int i = 0; i < match.athletesOnField.Count; i++) {
+			if (match.athletesOnField [i].GetTeam () == match.homeTeam) {
+				fieldHomeAthletesGroup.transform.GetChild (homeAthletesDisplayed).GetComponent<AthletePanel> ().SetAthletePanel (match.athletesOnField [i]);
+				homeAthletesDisplayed++;
+			} else {
+				fieldAwayAthletesGroup.transform.GetChild (awayAthletesDisplayed).GetComponent<AthletePanel> ().SetAthletePanel (match.athletesOnField [i]);
+				awayAthletesDisplayed++;
+			}
 		}
 	}
 
