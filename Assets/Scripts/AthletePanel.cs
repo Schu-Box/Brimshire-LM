@@ -12,16 +12,22 @@ public class AthletePanel : MonoBehaviour {
 	[HideInInspector] public Image jerseyImg;
 	[HideInInspector] public Text positionText;
 	[HideInInspector] public Button button;
+	[HideInInspector] public GameObject descriptorPanel;
+	[HideInInspector] public Text descriptorText;
 
 	private GameController gameController;
+	private MatchManager matchManager;
 
 	public void Awake() {
 		gameController = FindObjectOfType<GameController> ();
+		matchManager = FindObjectOfType<MatchManager>();
 
 		nameText = transform.GetChild (0).GetComponent<Text> ();
 		bodyImg = transform.GetChild (1).GetComponent<Image> ();
 		jerseyImg = transform.GetChild (2).GetComponent<Image> ();
 		positionText = transform.GetChild (3).GetComponent<Text> ();
+		descriptorPanel = transform.GetChild (4).gameObject;
+		descriptorText = transform.GetChild (4).GetComponentInChildren<Text> ();
 		button = GetComponent<Button> ();
 	}
 
@@ -31,7 +37,6 @@ public class AthletePanel : MonoBehaviour {
 		button.onClick.RemoveAllListeners ();
 
 		if (athlete != null) {
-			
 			nameText.text = a.name;
 			positionText.text = a.positionName;
 
@@ -42,17 +47,37 @@ public class AthletePanel : MonoBehaviour {
 			jerseyImg.sprite = a.jerseySprite;
 			jerseyImg.color = a.GetTeam ().teamColor;
 
-			if (!athlete.onField) { 
-				button.onClick.AddListener (() => gameController.SelectAthlete (athlete));
+			if (a.activeAction == null) { //Should always be the case since panels are set at the start of matches and in between matches
+				//descriptorText.text = "";
+				descriptorPanel.SetActive(false);
 			} else {
-				bodyImg.color = Color.Lerp (bodyImg.color, Color.black, 0.7f);
-				jerseyImg.color = Color.Lerp (jerseyImg.color, Color.black, 0.7f);
+				//descriptorText.text = "";
+				Debug.Log("Called (but I don't think it will be.");
+				descriptorPanel.SetActive(true);
+			}
+
+			if (matchManager.matchFieldParent.activeSelf == false) { //If the match is not active
+				button.onClick.AddListener (() => gameController.DisplayAthletePanel (gameObject, a));
+			} else { //If the match is active
+				if (athlete.currentFieldTile == null) { 
+					button.onClick.AddListener (() => matchManager.SelectAthlete (athlete));
+				} else { //Athlete is on field
+					bodyImg.color = Color.Lerp (bodyImg.color, Color.black, 0.7f);
+					jerseyImg.color = Color.Lerp (jerseyImg.color, Color.black, 0.7f);
+
+					button.onClick.AddListener (() => matchManager.RemoveAthleteFromField (athlete));
+				}
 			}
 		} else {
 			nameText.text = "";
 			bodyImg.enabled = false;
 			jerseyImg.enabled = false;
 			positionText.text = "";
+			descriptorPanel.SetActive (false);
+
+			//athleteButton.onClick.AddListener (() => UndisplayAthletePanel ());
+
+			button.interactable = false;
 		}
 	}
 }

@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class TeamController : MonoBehaviour {
 
+	//[HideInInspector] public bool playerControlled = false;
+
 	public int gold = 0;
 	public int prestige = 0;
 
@@ -96,10 +98,6 @@ public class TeamController : MonoBehaviour {
 			rosterList.Add (athlete);
 			athlete.SetTeam (this);
 			//athlete.onActiveRoster = false;
-		}
-
-		if (this == GameController.displayTeam) {
-			//gameController.UpdateNamesOnTeamPanel ();
 		}
 	}
 

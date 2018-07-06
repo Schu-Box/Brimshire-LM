@@ -27,6 +27,8 @@ public class Athlete {
 	private Lexic.NameGenerator nameGen = GameObject.FindGameObjectWithTag("NameGenerator").GetComponent<Lexic.NameGenerator>();
 	private GameController gameController = GameObject.FindObjectOfType<GameController>();
 
+	public bool manager;
+
 	public int age = 0;
 	public Race race;
 	public string name;
@@ -38,20 +40,27 @@ public class Athlete {
 	public Sprite bodySprite;
 	public Sprite jerseySprite;
 
-	public bool manager;
-	public bool onField = false;
-	public int rowNum = -1;
-	public int columnNum = -1;
-
-	//public bool starting = false; //Unused
-
-
 	public List<Attribute> attributeList = new List<Attribute> ();
 	public List<Statistic> statisticList = new List<Statistic> ();
 	public string positionName;
 	public int level = 1;
 
 	private TeamController team;
+
+	//On Field Data
+	public List<Action> availableActionList = new List<Action>();
+	//public bool onField = false;
+	//public bool performingAction = false;
+	public GameObject athleteOnFieldObject;
+	public AthletePanel athletePanelInMatch;
+	public FieldTile currentFieldTile;
+	public Action activeAction;
+	/*
+	public int rowNum = -1;
+	public int columnNum = -1;
+	*/
+
+
 
 	public Athlete(bool isManager) {
 
@@ -132,11 +141,13 @@ public class Athlete {
 
 
 	//Everything below here should eventually be removed
-
+	/*
 	public List<Opportunity> availableOpportunities = new List<Opportunity>();
+
 	public bool defending;
 	public bool goalkeeping;
 	public bool stealing;
+	*/
 
 	//Below here are the match stats for the athlete:
 	/*
@@ -156,6 +167,7 @@ public class Athlete {
 	*/
 }
 
+[System.Serializable]
 public class Race {
 	public string raceName;
 	public Sprite raceSprite;
@@ -167,16 +179,6 @@ public class Race {
 		raceJersey = jersey;
 	}
 }
-
-/*
-public class Position {
-	public string positionName;
-
-	public Position(string name) {
-		positionName = name;
-	}
-}
-*/
 
 public class Attribute {
 	public string attributeName;

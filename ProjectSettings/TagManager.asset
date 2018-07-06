@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Ball
   - NameGenerator
+  - MatchManager
   layers:
   - Default
   - TransparentFX
@@ -64,8 +65,17 @@ TagManager:
   - name: Battle Indicator
     uniqueID: 2620353273
     locked: 0
-  - name: Match
+  - name: Match Background
     uniqueID: 828568827
+    locked: 0
+  - name: Match Field
+    uniqueID: 2875542915
+    locked: 0
+  - name: Match Athlete
+    uniqueID: 1022353903
+    locked: 0
+  - name: Match UI
+    uniqueID: 3339566781
     locked: 0
   - name: UI
     uniqueID: 3359134613
