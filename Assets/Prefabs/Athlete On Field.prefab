@@ -36,6 +36,7 @@ GameObject:
   m_Component:
   - component: {fileID: 224569844734535142}
   - component: {fileID: 212596102614510842}
+  - component: {fileID: 210803323917485372}
   m_Layer: 0
   m_Name: Athlete On Field
   m_TagString: Untagged
@@ -59,6 +60,16 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!210 &210803323917485372
+SortingGroup:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1455353138835038}
+  m_Enabled: 1
+  m_SortingLayerID: 1022353903
+  m_SortingLayer: 10
+  m_SortingOrder: 0
 --- !u!212 &212147376757852942
 SpriteRenderer:
   m_ObjectHideFlags: 1

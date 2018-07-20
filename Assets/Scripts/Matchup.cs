@@ -29,6 +29,8 @@ public class Opportunity {
 	public int baseTimeTaken;
 	public int basePercentChanceSuccess;
 
+	public List<Action> possibleActions = new List<Action>();
+
 	public Opportunity(string identifier, string officialName, string descriptionOfOpportunity, string verb, int baseTime, int baseChance) {
 		id = identifier;
 		name = officialName;
@@ -44,15 +46,44 @@ public class Action {
 	public Athlete athlete;
 	public Opportunity opportunity;
 
-	public FieldTile fieldTile;
-	public int timeUnitsLeft;
+	public int timeUnitsLeft = 0;
+	public int chanceSuccess = 0;
 
-	public Action(Athlete a, Opportunity opp, FieldTile tile, int time) {
+	public FieldTile fieldTile;
+	public Ball ballInvolved = null;
+
+	public Action(Athlete a, Opportunity opp, FieldTile tile) {
 		athlete = a;
 		opportunity = opp;
 		fieldTile = tile;
+		/*
 		timeUnitsLeft = time;
+		chanceSuccess = chance;
+		*/
 	}
+}
+
+public class FieldTile {
+	public int gridX = -1;
+	public int gridY = -1;
+	public List<FieldTile> neighborList = new List<FieldTile> ();
+	public bool homeSide;
+
+	public bool isGoal = false;
+	public bool isBoundary = false;
+
+	//public List<Athlete> athletesOnTile = new List<Athlete> ();
+	public Athlete athleteOnTile;
+	public List<Ball> ballsLooseInTile = new List<Ball>();
+}
+
+public class Ball {
+	public FieldTile looseInFieldTile = null;
+	public Athlete heldByAthlete = null;
+
+	public GameObject ballObject = null;
+
+	public bool scored = false;
 }
 
 /*
@@ -77,6 +108,7 @@ public class Opportunity {
 }
 */
 
+/*
 public class Play {
 	//public Matchup match; //May not necessarily need a reference to the match itself.
 	public Athlete athlete;
@@ -88,15 +120,7 @@ public class Play {
 		withBall = with;
 	}
 }
-
-public class FieldTile {
-	public int gridX = -1;
-	public int gridY = -1;
-	public List<FieldTile> neighborList = new List<FieldTile> ();
-	public bool homeSide;
-
-	public List<Athlete> athletesOnTile = new List<Athlete> ();
-}
+*/
 
 public class Matchup {
 
@@ -120,27 +144,29 @@ public class Matchup {
 	public bool firstTeamPresent = false;
 	//Before Match ^
 
-	public int tilesInColumn = 2;
-	public int tilesInRow = 4;
+	public int xFieldTiles = 4;
+	public int yFieldTiles = 2;
 	public List<List<FieldTile>> fieldGrid = new List<List<FieldTile>> ();
 
 	//During Match v
-	public int numAthletesOnFieldPerTeam = 3;
+	public int numAthletesOnFieldPerTeam = 2;
+	public int numBalls = 1;
 
 	public List<Athlete> athletesOnField = new List<Athlete> ();
 	public Athlete athleteWithTurn = null;
 
 	public int timeUnitsLeft = 100;
 
-	List<Action> actionExecutionOrder = new List<Action> ();
-
+	public List<Action> actionExecutionOrder = new List<Action> ();
+	public List<Ball> ballList = new List<Ball> ();
 
 	//Old and being refactorized
+	/*
 	public List<Play> playOrder = new List<Play> ();
 	public int playNumber = -1;
 	public int changesInPossession = 0;
 	public int possessionsPerHalf = 10;
-	public Athlete athleteWithBall;
+	*/
 
 	public int homeScore = 0;
 	public int awayScore = 0;
@@ -174,26 +200,28 @@ public class Matchup {
 
 	private List<Opportunity> basicOpportunityList = new List<Opportunity> {
 		//Without the ball
-		new Opportunity("move", "Move", "Move to an adjacent field tile.", "Moving", 10, 100),
+		new Opportunity("move", "Move", "Move to an adjacent field tile.", "Moving", 10, 100), //Failure technically needs to be implemented
 
 		//With the ball
-		new Opportunity("pass", "Pass the Ball", "Pass the ball into an adjacent field tile.", "Passing the ball", 4, 60),
-		new Opportunity("shoot", "Take the Shot", "Take a shot on goal.", "Shooting the ball", 6, 40)
+		new Opportunity("dribble", "Dribble", "Dribble the ball to an adjacent field tile.", "Dribbling", 12, 100), //Failure needs to be implemented
+		new Opportunity("kick", "Short Kick", "Kick the ball to an adjacent tile.", "Kicking", 6, 70)
+
+		//new Opportunity("wait", "Hold Position", "Remain in this field tile for a few ticks.", "Waiting", 5, 100)
 	};
 
 	public void SetField() {
 		fieldGrid = new List<List<FieldTile>> ();
-		for (int x = 0; x < tilesInRow; x++) {
+		for (int x = 0; x < xFieldTiles + 2; x++) {
 			fieldGrid.Add (new List<FieldTile> ());
-			for (int y = 0; y < tilesInColumn; y++) {
+			for (int y = 0; y < yFieldTiles + 2; y++) {
 				fieldGrid [x].Add (new FieldTile ());
 				fieldGrid [x] [y].gridX = x;
 				fieldGrid [x] [y].gridY = y;
 			}
 		}
 			
-		for (int x = 0; x < tilesInRow; x++) { //Set the tile neighbors and side
-			for (int y = 0; y < tilesInColumn; y++) {
+		for (int x = 0; x < fieldGrid.Count; x++) { //Set the tile neighbors and side
+			for (int y = 0; y < fieldGrid[x].Count; y++) {
 				FieldTile fieldTile = fieldGrid [x] [y];
 				if (x < fieldGrid.Count - 1) {
 					fieldTile.neighborList.Add (fieldGrid [x + 1] [y]);
@@ -213,40 +241,48 @@ public class Matchup {
 				} else {
 					fieldTile.homeSide = false;
 				}
+
+				if (y == 0 || y == fieldGrid[x].Count - 1) {
+					fieldGrid [x] [y].isBoundary = true;
+				} else {
+					if (x == 0 || x == fieldGrid.Count - 1) {
+						fieldGrid [x] [y].isGoal = true;
+					}
+				}
 			}
 		}
 	}
 
+	//This function is a bit wonkaroni because it always assumes there's borders on the edges of the grid (which actually makes sense tho?)
 	public void SetLineup(TeamController team) {
-		if (team == homeTeam) {
-			for (int i = 0; i < numAthletesOnFieldPerTeam; i++) {
-				int randomX = Random.Range (0, (fieldGrid.Count / 2));
-				int randomY = Random.Range (0, fieldGrid [randomX].Count);
-
-				AddAthleteToFieldGrid (team.rosterList [i], randomX, randomY);
+		for (int i = 0; i < numAthletesOnFieldPerTeam; i++) {
+			List<FieldTile> validPlacementTiles = new List<FieldTile> ();
+			for (int x = 0; x < fieldGrid.Count; x++) {
+				for (int y = 0; y < fieldGrid[x].Count; y++) {
+					FieldTile tile = fieldGrid [x] [y];
+					if (!tile.isBoundary && !tile.isGoal) {
+						if (fieldGrid [x] [y].athleteOnTile == null) {
+							if ((team == homeTeam && tile.homeSide) || (team == awayTeam && !tile.homeSide))
+								validPlacementTiles.Add (fieldGrid [x] [y]);
+						}
+					}
+				}
 			}
-		} else if (team == awayTeam) {
-			for (int i = 0; i < numAthletesOnFieldPerTeam; i++) {
-				int randomX = Random.Range ((fieldGrid.Count / 2), fieldGrid.Count);
-				int randomY = Random.Range (0, fieldGrid [randomX].Count);
-
-				AddAthleteToFieldGrid (team.rosterList [i], randomX, randomY);
-			}
-		} else {
-			Debug.Log ("C'mon man that team isn't even in this match. You stoopid.");
+			AddAthleteToFieldGrid (team.rosterList [i], validPlacementTiles [Random.Range (0, validPlacementTiles.Count)]);
 		}
 	}
 
-	public void AddAthleteToFieldGrid(Athlete athlete, int gridX, int gridY) {
-		fieldGrid [gridX] [gridY].athletesOnTile.Add (athlete);
-
-		athlete.currentFieldTile = fieldGrid [gridX] [gridY];
+	public void AddAthleteToFieldGrid(Athlete athlete, FieldTile tile) {
+		tile.athleteOnTile = athlete;
+		athlete.currentFieldTile = tile;
+		athlete.originalLineupTile = tile;
 	}
 
 	public void RemoveAthleteFromFieldGrid(Athlete athlete) {
-		athlete.currentFieldTile.athletesOnTile.Remove (athlete);
-
+		//athlete.currentFieldTile.athletesOnTile.Remove (athlete);
+		athlete.currentFieldTile.athleteOnTile = null;
 		athlete.currentFieldTile = null;
+		athlete.originalLineupTile = null;
 	}
 
 	public void SimulateMatch() {
@@ -283,11 +319,16 @@ public class Matchup {
 
 		DetermineInitiativeOrder ();
 
-		if (matchManager.matchFieldParent.activeSelf == true) {
-			matchManager.DisplayStartedMatchUI (this);
-		}
+        for (int i = 0; i < numBalls; i++) {
+            ballList.Add(new Ball());
+        }
 
-		SetNextTurn ();
+		if (matchManager.matchFieldParent.activeSelf == true) {
+			matchManager.StartCoroutine(matchManager.AnimateStartedMatchUI ());
+		} else {
+			AssignBallStarts(homeTeam);
+			SetNextTurn ();
+		}
 	}
 
 	public void DetermineInitiativeOrder() {
@@ -322,8 +363,36 @@ public class Matchup {
 		}
 	}
 
+	public void AssignBallStarts(TeamController team) {
+		Debug.Log ("Giving the ball to somebody.");
+
+        for (int i = 0; i < ballList.Count; i++) {
+            for (int j = 0; j < athletesOnField.Count; j++) {
+                if (athletesOnField[j].GetTeam() == team) {
+					PlaceBallOnTile(ballList[i], athletesOnField[j].currentFieldTile);
+					break;
+				}
+			}
+        }
+    }
+
+	public void PlaceBallOnTile(Ball ball, FieldTile tile) {
+		if(tile.athleteOnTile != null) {
+			tile.athleteOnTile.heldBall = ball;
+			ball.heldByAthlete = tile.athleteOnTile;
+		} else {
+			tile.ballsLooseInTile.Add(ball);
+			ball.looseInFieldTile = tile;
+		}
+
+		if(matchManager.matchFieldParent.activeSelf == true) {
+			matchManager.PlaceBallObject(ball, tile);
+		}
+	}
+
 	public void SetNextTurn() { //Grabs the first athlete that isn't performing an action and sets them as the athleteWithTurn
-		MatchManager.selectedAction = null;
+		//Debug.Log("Setting next turn");
+		MatchManager.selectedOpportunityButton = null;
 
 		athleteWithTurn = null;
 		for (int i = 0; i < athletesOnField.Count; i++) {
@@ -333,8 +402,7 @@ public class Matchup {
 			}
 		}
 
-		if (athleteWithTurn == null) {
-			//Debug.Log ("ALL athletes are currently performing an action.");
+		if (athleteWithTurn == null) { //All athletes are actively performing actions
 
 			if (matchManager.matchFieldParent.activeSelf == true) {
 				matchManager.StartCoroutine (matchManager.WaitThenAdvanceTime ());
@@ -347,30 +415,210 @@ public class Matchup {
 			if (matchManager.matchFieldParent.activeSelf == true) {
 				matchManager.DisplayNewMatchTurn (this);
 			} else { //AI move
-				GetAIAction(athleteWithTurn);
+				//THIS DOESN'T EVEN DO ANYTHING RIGHT NOW YA STUPID
+				Debug.Log("5 bucks say the game just stopped working.");
+				//GetAIAction(athleteWithTurn);
 			}
 		}
 	}
 
-	public Action GetAIAction(Athlete athlete) {
-		Action randomAction = athlete.availableActionList [Random.Range (0, athlete.availableActionList.Count)];
+	public void AssignAvailableOpportunities() {
+		Athlete a = athleteWithTurn;
+		a.availableOpportunityList = new List<Opportunity> ();
 
-		switch (randomAction.opportunity.id.ToLower()) {
-		case "move":
-			FieldTile randoDirection = athlete.currentFieldTile.neighborList [Random.Range (0, athlete.currentFieldTile.neighborList.Count)];
-			randomAction.fieldTile = randoDirection;
-			break;
-		default:
-			Debug.Log ("That AI Action is not properly accounted for. Cuz you ain't an accountant. And you bad at counting.");
-			break;
+		List<FieldTile> tileNeighbors = new List<FieldTile>();
+		for(int i = 0; i < a.currentFieldTile.neighborList.Count; i++) {
+			tileNeighbors.Add(a.currentFieldTile.neighborList[i]);
 		}
 
-		return randomAction;
+		if (a.heldBall == null) { //If the athlete doesn't have a ball.
+			Opportunity moveOpp = GetOpportunity ("move");
+			moveOpp.possibleActions = new List<Action>();
+			for(int i = 0; i < tileNeighbors.Count; i++) {
+				Action newAction = new Action (a, moveOpp, tileNeighbors[i]);
+				newAction.timeUnitsLeft = GetActionTime(newAction);
+				newAction.chanceSuccess = GetActionChance(newAction);
+				moveOpp.possibleActions.Add(newAction);
+			}
+			a.availableOpportunityList.Add (moveOpp);
+		} else { //If the athlete does have a ball.
+			Opportunity dribOpp = GetOpportunity("dribble");
+			dribOpp.possibleActions = new List<Action>();
+			for(int i = 0; i < tileNeighbors.Count; i++) { //Set the possible actions for the opportunity 
+				Action newAction = new Action(a, dribOpp, tileNeighbors[i]);
+				newAction.timeUnitsLeft = GetActionTime(newAction);
+				newAction.chanceSuccess = GetActionChance(newAction);
+				dribOpp.possibleActions.Add(newAction);
+			}
+			a.availableOpportunityList.Add (dribOpp);
+			
+
+			Opportunity kickOpp = GetOpportunity("kick");
+			kickOpp.possibleActions = new List<Action>();
+			for(int i = 0; i < tileNeighbors.Count; i++) {
+				Action newAction = new Action(a, kickOpp, tileNeighbors[i]);
+				newAction.timeUnitsLeft = GetActionTime(newAction);
+				newAction.chanceSuccess = GetActionChance(newAction);
+				kickOpp.possibleActions.Add(newAction);
+			}
+			a.availableOpportunityList.Add(kickOpp);
+		}
+
+		/*
+		Opportunity waitOpp = GetOpportunity("wait");
+		waitOpp.possibleActions = new List<Action>();
+		Action waitAction = new Action(a, waitOpp, a.currentFieldTile);
+		waitAction.timeUnitsLeft = GetActionTime(waitAction);
+		waitAction.chanceSuccess = GetActionChance(waitAction);
+		waitOpp.possibleActions.Add(waitAction);
+		a.availableOpportunityList.Add(waitOpp);
+		*/
+	}
+
+	public Opportunity GetOpportunity(string oppName) {
+		for (int i = 0; i < basicOpportunityList.Count; i++) {
+			if (basicOpportunityList [i].id.ToLower() == oppName.ToLower()) {
+				return basicOpportunityList [i];
+			}
+		}
+		return null;
+	}
+
+	public int GetActionTime(Action action) {
+		Athlete athlete = action.athlete;
+		int time = 0;
+		switch(action.opportunity.id) {
+			case "move":
+				time = GetOpportunity ("move").baseTimeTaken;
+				float moveModifier = 1;
+				moveModifier += athlete.GetAttributeValue ("speed") / 10; //-1 time per 10 points of speed
+				moveModifier--;
+				time -= (int)moveModifier;
+				break;
+			case "dribble":
+				time = GetOpportunity("dribble").baseTimeTaken;
+				float dribbleModifier = 1f;
+				dribbleModifier += athlete.GetAttributeValue ("speed") / 10; 
+				dribbleModifier--;
+				time -= (int)dribbleModifier;
+				break;
+			case "kick":
+				time = GetOpportunity("kick").baseTimeTaken;
+				float kickModifier = 1f;
+				kickModifier += athlete.GetAttributeValue("strength") / 20;
+				kickModifier--;
+				time -= (int)kickModifier;
+				break;
+			case "wait":
+				time = GetOpportunity("wait").baseTimeTaken;
+				break;
+			default:
+				Debug.Log("No action means no time. And you all out of actions so you all out of time.");
+				break;
+		}
+
+		return time;
+	}
+
+	public int GetActionChance(Action action) {
+		Athlete athlete = action.athlete;
+		Athlete defender = action.fieldTile.athleteOnTile;
+		int chance = 0;
+		switch(action.opportunity.id) {
+			case "move":
+				chance = GetOpportunity("move").basePercentChanceSuccess;
+
+				if(defender != null) {
+					float invaderScore = athlete.GetAttributeValue("Strength") + athlete.GetAttributeValue("Athleticism");
+					float defenderScore = defender.GetAttributeValue ("Strength") + defender.GetAttributeValue ("Resilience");
+					defenderScore += defender.GetAttributeValue("Off Ball Defense");
+					invaderScore = invaderScore / 3;
+					defenderScore = defenderScore / 3;
+
+					float difference = defenderScore - invaderScore;
+					int percentSuccessForInvader = 50 - (int)difference;
+
+					chance = (chance/100) * percentSuccessForInvader;
+				}
+				break;
+			case "dribble":
+				chance = GetOpportunity("dribble").basePercentChanceSuccess;
+				float dribChanceModifier = 1f;
+				dribChanceModifier += athlete.GetAttributeValue ("ball control") / 5; //+1 percent per 5 points of ball control
+				chance += (int)dribChanceModifier;
+
+				if(defender != null) {
+					float invaderScore = athlete.GetAttributeValue("Strength") + athlete.GetAttributeValue("Athleticism");
+					float defenderScore = defender.GetAttributeValue ("Strength") + defender.GetAttributeValue ("Resilience");
+					defenderScore += defender.GetAttributeValue("On Ball Defense");
+					//Add chance to lose the ball as well depending on invader's Ball Control
+
+					invaderScore = invaderScore / 3;
+					defenderScore = defenderScore / 3;
+					float difference = defenderScore - invaderScore;
+					int percentSuccessForInvader = 50 - (int)difference;
+
+					chance = (chance/100) * percentSuccessForInvader;
+				}
+				break;
+			case "kick":
+				chance = GetOpportunity("kick").basePercentChanceSuccess;
+				break;
+			case "wait":
+				chance = GetOpportunity("wait").basePercentChanceSuccess;
+
+				//Debug.Log(chance);
+
+				break;
+			default:
+				Debug.Log("You no have ding. Add ding pls.");
+				break;
+		}
+
+		return chance;
+	}
+
+	public Opportunity GetAIOpportunity(Athlete athlete) {
+		Opportunity chosenOpportunity = athlete.availableOpportunityList[Random.Range(0, athlete.availableOpportunityList.Count)];
+
+		return chosenOpportunity;
+	}
+
+	public Action GetAIAction(Athlete athlete, Opportunity opp) {
+		Action chosenAction = null;
+		List<Action> priorityActions = new List<Action>();
+		List<Action> neutralActions = new List<Action>();
+		List<Action> avoidanceActions = new List<Action>();
+
+		for(int i = 0; i < opp.possibleActions.Count; i++) {
+			FieldTile tile = opp.possibleActions[i].fieldTile;
+			if(tile.isGoal) {
+				if((tile.homeSide && athlete.GetTeam() == awayTeam) || (!tile.homeSide && athlete.GetTeam() == homeTeam)) {
+					priorityActions.Add(opp.possibleActions[i]);
+				} else {
+					avoidanceActions.Add(opp.possibleActions[i]);
+				}
+			} else if(tile.isBoundary) {
+				avoidanceActions.Add(opp.possibleActions[i]);
+			} else {
+				neutralActions.Add(opp.possibleActions[i]);
+			}
+		}
+
+
+
+		if(priorityActions.Count > 0) {
+			chosenAction = priorityActions[Random.Range(0, priorityActions.Count)];
+		} else if(neutralActions.Count > 0){
+			chosenAction = neutralActions[Random.Range(0, neutralActions.Count)];
+		} else {
+			chosenAction = opp.possibleActions[Random.Range(0, opp.possibleActions.Count)]; //Completely random
+		}
+
+		return chosenAction;
 	}
 
 	public void AdvanceTimeUnit() {
-		Debug.Log ("Advancing Time");
-
 		timeUnitsLeft--;
 
 		for (int i = 0; i < athletesOnField.Count; i++) {
@@ -390,83 +638,476 @@ public class Matchup {
 			SetNextTurn ();
 		}
 	}
-
-	public void AssignAvailableOpportunities() {
-		Athlete a = athleteWithTurn;
-		a.availableActionList = new List<Action> ();
-
-		int moveTime = GetOpportunity ("move").baseTimeTaken;
-		float moveModifier = 1;
-		moveModifier += a.GetAttributeValue ("speed") / 10;
-		moveModifier--;
-		moveTime -= (int)moveModifier;
-		Action moveAction = new Action (a, GetOpportunity ("move"), null, moveTime);
-
-		a.availableActionList.Add (moveAction);
-	}
-
-	public Opportunity GetOpportunity(string oppName) {
-		for (int i = 0; i < basicOpportunityList.Count; i++) {
-			if (basicOpportunityList [i].name.ToLower() == oppName.ToLower()) {
-				return basicOpportunityList [i];
-			}
-		}
-		return null;
-	}
 		
-	public void BeginAction(Athlete athlete, Action action) {
+	public void BeginAction(Athlete athlete, Action action, FieldTile tile) {
+		//Debug.Log("Started action : " + action.opportunity.id);
+
 		athlete.activeAction = action;
+		action.fieldTile = tile;
+		if(athlete.heldBall != null) {
+			action.ballInvolved = athlete.heldBall;
+		}
 
 		SetNextTurn ();
 	}
 
 	public void AttemptAction(Action action) {
-		Athlete athlete = action.athlete;
+		//Debug.Log("Attempting Action");
+
+		bool success = false; //Check for success
+
+		/*
+		if(action == null) {
+			Debug.Log("The action is null, bro.");
+		} else {
+			Debug.Log(action.opportunity.name);
+		}
+		*/
+
+		action.chanceSuccess = GetActionChance(action);
+
+		int randoFromHundo = Random.Range (0, 101);
+		if (randoFromHundo <= action.chanceSuccess) {
+			success = true;
+		} else {
+			success = false;
+			Debug.Log ("FAILED: " + action.opportunity.name);
+		}
 
 		switch (action.opportunity.id.ToLower()) {
+		//Without Ball
 		case "move":
-			//100% success
-			if (matchManager.matchFieldParent.activeSelf == true) {
-				matchManager.StartCoroutine (matchManager.AnimateSuccessfulMovement (action));
+			if (action.fieldTile.athleteOnTile != null) { //If there is an athlete in the next space
+				BeginClash(action);
 			} else {
-				CompleteSuccessfulMovement (action);
+				CompleteMovementAction (action, success);
 			}
-
 			break;
+
+
+		//With Ball
+		case "dribble":
+			if(action.fieldTile.athleteOnTile != null && success) {
+				BeginClash(action);
+			} else {
+				CompleteDribbleAction (action, success);
+			}
+			break;
+		
+		case "kick":
+			CompleteKickAction(action, success);
+			break;
+
+
+		//With or Without Ball
+		case "wait":
+			Debug.Log("You'll never see this.");
+			CompleteWaitAction (action, success);
+			break;
+
 		default:
 			Debug.Log ("That action does not exist in any way, shape, or form.");
 			break;
 		}
 
 		action.athlete.activeAction = null;
-	}
-
-	public void CompleteSuccessfulMovement(Action action) {
-		Debug.Log ("Moved successfully.");
-		Athlete athlete = action.athlete;
-
-		//100% chance of success
-		FieldTile oldTile = athlete.currentFieldTile;
-		FieldTile newTile = action.fieldTile;
-
-		oldTile.athletesOnTile.Remove (athlete);
-		newTile.athletesOnTile.Add (athlete);
-
-		athlete.currentFieldTile = action.fieldTile;
-
-		ConcludeAction (action);
-	}
-
-	public void ConcludeAction(Action action) {
-		Debug.Log ("Concluding action");
-
 		actionExecutionOrder.Remove (action);
-		if (actionExecutionOrder.Count > 0) {
-			AttemptAction (actionExecutionOrder [0]);
+	}
+
+	public void BeginClash(Action action) {
+		if(matchManager.matchFieldParent.activeSelf == true) {
+			matchManager.StartCoroutine(matchManager.AnimateClash(action));
 		} else {
-			SetNextTurn ();
+			CompleteClash(action);
 		}
 	}
+
+	public void CompleteClash(Action action) {
+		FieldTile tile = action.fieldTile;
+		Athlete invader = action.athlete;
+		Athlete defender = tile.athleteOnTile;
+
+		bool successForInvader = false;
+		int rando = Random.Range(0, 101);
+		if(rando <= action.chanceSuccess) {
+			successForInvader = true;
+		} else {
+			successForInvader = false;
+		}
+
+		if(successForInvader) {
+			FieldTile chosenTile = null;
+			List<FieldTile> availableFieldNeighbors = new List<FieldTile>();
+			List<FieldTile> availableBoundaryNeighbors = new List<FieldTile>();
+			if(defender.GetTeam() == homeTeam) {
+				if(tile.gridX != 0) {
+					FieldTile leftTile = fieldGrid[tile.gridX - 1][tile.gridY];
+					if(leftTile.athleteOnTile == null) {
+						if(!leftTile.isBoundary || !leftTile.isGoal) {
+							chosenTile = leftTile;
+						} else {
+							availableBoundaryNeighbors.Add(leftTile);
+						}
+					}
+				}
+			} else {
+				if(tile.gridX != fieldGrid.Count - 1) {
+					FieldTile rightTile = fieldGrid[tile.gridX + 1][tile.gridY];
+					if(rightTile.athleteOnTile == null) {
+						if(!rightTile.isBoundary || !rightTile.isGoal) {
+							chosenTile = rightTile;
+						} else {
+							availableBoundaryNeighbors.Add(rightTile);
+						}
+					}
+				}
+			}
+
+			if(tile.gridY != 0) {
+				FieldTile belowTile = fieldGrid[tile.gridX][tile.gridY - 1];
+				if(belowTile.athleteOnTile == null) {
+					if(!belowTile.isBoundary && !belowTile.isGoal) {
+						availableFieldNeighbors.Add(belowTile);
+					} else {
+						availableBoundaryNeighbors.Add(belowTile);
+					}
+				}
+			}
+			if(tile.gridY != fieldGrid[tile.gridX].Count - 1) {
+				FieldTile aboveTile = fieldGrid[tile.gridX][tile.gridY + 1];
+				if(aboveTile.athleteOnTile == null) {
+					if(!aboveTile.isBoundary && !aboveTile.isGoal) {
+						availableFieldNeighbors.Add(aboveTile);
+					} else {
+						availableBoundaryNeighbors.Add(aboveTile);
+					}
+				}
+			}
+
+			if(chosenTile == null) {
+				if(availableFieldNeighbors.Count > 0) {
+					chosenTile = availableFieldNeighbors[Random.Range(0, availableFieldNeighbors.Count)];
+				} else if(availableBoundaryNeighbors.Count > 0) {
+					chosenTile = availableBoundaryNeighbors[Random.Range(0, availableBoundaryNeighbors.Count)];
+				} else {
+					Debug.Log("There aren't any open tiles towards your own goal or the sides.");
+				}
+			}
+
+			if(defender.heldBall != null) {
+				GiveBallToAthlete(defender.heldBall, invader);
+			}
+
+			MoveAthleteToTile(defender, chosenTile);
+			MoveAthleteToTile(invader, tile);
+
+			if(defender.activeAction != null) {
+				if(actionExecutionOrder.Contains(defender.activeAction)) {
+					Debug.Log("The action is in the action execution ORDER");
+					actionExecutionOrder.Remove(defender.activeAction);	
+				}
+
+				defender.activeAction = null;
+			}
+		} else {
+			//Leave both athletes in their current tile.
+			if(invader.heldBall != null) {
+				GiveBallToAthlete(invader.heldBall, defender);
+			}
+		}
+
+		//Animate the ball moving somehow
+
+		if(matchManager.matchFieldParent.activeSelf == true) {
+			matchManager.StartCoroutine(matchManager.AnimateClashCompletion(action, defender, action.chanceSuccess, rando));
+		} else {
+			ConcludeAction(action);
+		}
+	}
+
+	//Could technically combine these two 
+	public void CompleteMovementAction(Action action, bool success) {
+		Athlete athlete = action.athlete;
+
+		if (success) {
+			MoveAthleteToTile(athlete, action.fieldTile);
+		} else {
+			Debug.Log ("Failed. I guess you stay where you're at.");
+		}
+
+		if (matchManager.matchFieldParent.activeSelf == true) { 
+			matchManager.StartCoroutine (matchManager.AnimateMovementAction (action, success));
+		} else {
+			ConcludeAction (action);
+		}
+	}
+
+	public void CompleteDribbleAction(Action action, bool success) {
+		Athlete athlete = action.athlete;
+
+		if (success) {
+			MoveAthleteToTile(athlete, action.fieldTile);
+		} else {
+			Debug.Log ("Failed. I guess you lost the ball somewhere.");
+		}
+
+		if (matchManager.matchFieldParent.activeSelf == true) { 
+			matchManager.StartCoroutine (matchManager.AnimateDribbleAction (action, success));
+		} else {
+			ConcludeAction (action);
+		}
+	}
+
+	public void CompleteKickAction(Action action, bool success) {
+		Athlete athlete = action.athlete;
+
+		if(success) {
+			MoveBallToTile(athlete.heldBall, action.fieldTile);
+		} else {
+			Debug.Log("The ball stays where it is or goes to an adjancent tile, cuz you kicked it bad. Cuz you trash.");
+		}
+
+		if (matchManager.matchFieldParent.activeSelf == true) { 
+			matchManager.StartCoroutine (matchManager.AnimateKickAction (action, success));
+		} else {
+			ConcludeAction (action);
+		}
+	}
+
+	public void CompleteWaitAction(Action action, bool success) {
+		Debug.Log("Completing wait");
+		//Always success
+
+		//Should there be any type of animation? Prolly not.
+
+		ConcludeAction(action);
+	}
+
+	public void MoveAthleteToTile(Athlete athlete, FieldTile newTile) {
+		FieldTile oldTile = athlete.currentFieldTile;
+
+		oldTile.athleteOnTile = null;
+		newTile.athleteOnTile = athlete;
+		athlete.currentFieldTile = newTile;
+
+		if(newTile.ballsLooseInTile.Count > 0) { //If there's a ball loose on the tile
+			Debug.Log("loose ball");
+			if(athlete.heldBall == null) { //If the athlete doesn't have a ball, pick it up
+				Ball looseBall = newTile.ballsLooseInTile[0];
+				athlete.heldBall = looseBall;
+				looseBall.heldByAthlete = athlete;
+				looseBall.looseInFieldTile = null;
+				newTile.ballsLooseInTile.Remove(looseBall);
+
+				//Should probbaly resolve after the current action instead of simultaneously
+				if(matchManager.matchFieldParent.activeSelf == true) {
+					matchManager.StartCoroutine(matchManager.AnimateAthleteGrabBall(looseBall, athlete));
+				}
+			}
+		}
+
+		if(athlete.heldBall != null && newTile.isGoal) {
+			athlete.heldBall.scored = true;
+		}
+	}
+
+	public void MoveBallToTile(Ball ball, FieldTile newTile) {
+		if(ball.heldByAthlete != null) {
+			ball.heldByAthlete.heldBall = null;
+			ball.heldByAthlete = null;
+		}
+		if(ball.looseInFieldTile != null) {
+			 ball.looseInFieldTile.ballsLooseInTile.Remove(ball);
+			 ball.looseInFieldTile = null;
+		}
+
+		if(newTile.athleteOnTile != null) {
+			ball.heldByAthlete = newTile.athleteOnTile;
+			newTile.athleteOnTile.heldBall = ball;
+		} else {
+			ball.looseInFieldTile = newTile;
+			newTile.ballsLooseInTile.Add(ball);
+		}
+
+		if(newTile.isGoal) {
+			ball.scored = true;
+		}
+	}
+
+	//Doesn't account for if the athlete already has a ball. Probably should be checked outside of this function though, ideally.
+	public void GiveBallToAthlete(Ball ball, Athlete athlete) {
+		if(ball.heldByAthlete != null) {
+			ball.heldByAthlete.heldBall = null;
+		}
+
+		if(ball.looseInFieldTile != null) {
+			ball.looseInFieldTile.ballsLooseInTile.Remove(ball);
+		}
+
+		ball.heldByAthlete = athlete;
+		athlete.heldBall = ball;
+
+		if(matchManager.matchFieldParent.activeSelf == true) {
+			matchManager.StartCoroutine(matchManager.AnimateAthleteGrabBall(ball, athlete));
+		}
+	}
+	
+
+	public void ScoreGoal(Action action, Ball ball) {
+		Debug.Log("GOAL SCORED");
+		ball.scored = false;
+		FieldTile tile = action.fieldTile;
+
+		if(tile.homeSide) {
+			awayScore++;
+		} else {
+			homeScore++;
+		}
+		
+		if(matchManager.matchFieldParent.activeSelf == true) {
+			matchManager.StartCoroutine(matchManager.AnimateGoal(action, ball));
+		} else {
+			CompleteGoalScoring(ball, action.fieldTile);
+		}
+	}
+
+	public void CompleteGoalScoring(Ball ball, FieldTile tileScoredOn) {
+			if(ball.heldByAthlete != null) {
+				ball.heldByAthlete.heldBall = null;
+				ball.heldByAthlete = null;
+			}
+			if(ball.looseInFieldTile != null) {
+				ball.looseInFieldTile.ballsLooseInTile.Remove(ball);
+				ball.looseInFieldTile = null;
+			}
+
+			TeamController teamScoredOn;
+			if(tileScoredOn.homeSide) {
+				teamScoredOn = homeTeam;
+			} else {
+				teamScoredOn = awayTeam;
+			}
+
+			ReturnAthletesToOriginalTiles();
+
+			if(matchManager.matchFieldParent.activeSelf == true) {
+				matchManager.StartCoroutine(matchManager.AnimateAthletesReturningToOriginalPositions(teamScoredOn));
+			} else {
+				AssignBallStarts(teamScoredOn);
+				SetNextTurn();
+			}
+	}
+
+	public void ReturnAthletesToOriginalTiles() {
+		for(int i = 0; i < athletesOnField.Count; i++) {
+			if(athletesOnField[i].activeAction != null) {
+				actionExecutionOrder.Remove(athletesOnField[i].activeAction);
+				athletesOnField[i].activeAction = null;
+			}
+			MoveAthleteToTile(athletesOnField[i], athletesOnField[i].originalLineupTile);
+		}
+	}
+
+
+	public void ConcludeAction(Action action) {
+		//Debug.Log("Concluding Action");
+
+		//FieldTile tile = action.fieldTile;
+		
+		bool scoreOccured = false;
+		for(int i = 0; i < ballList.Count; i++) {
+			if(ballList[i].scored) {
+				scoreOccured = true;
+				ScoreGoal(action, ballList[i]);
+			}
+		}
+
+		if(timeUnitsLeft > 0) {
+			if(!scoreOccured) {
+				if (actionExecutionOrder.Count > 0) {
+					AttemptAction (actionExecutionOrder [0]);
+				} else {
+					SetNextTurn ();
+				}
+			} //Else the flow continues from the ScoreGoal thang
+		} else {
+			ConcludeMatch();
+		}
+	}
+
+	//Right now this just gets the fastest athlete, not the closest.
+	/*
+	public Athlete GetClosestAthlete(bool home, FieldTile tile) {
+		TeamController checkedTeam;
+		if (home) {
+			checkedTeam = homeTeam;
+		} else {
+			checkedTeam = awayTeam;
+		}
+
+		for (int i = 0; i < athletesOnField.Count; i++) {
+			if (athletesOnField [i].GetTeam () == checkedTeam) {
+				return athletesOnField [i];
+			}
+		}
+
+		Debug.Log ("Major failure, major.");
+		return null;
+	}
+	
+
+	public void GiveBallToAthlete(Ball ball, Athlete athlete) {
+		if (ball.heldByAthlete != null) {
+			ball.heldByAthlete.heldBall = null;
+			ball.heldByAthlete = null;
+		}
+
+		if (ball.looseInFieldTile != null) {
+			ball.looseInFieldTile.ballsLooseInTile.Remove (ball);
+			ball.looseInFieldTile = null;
+		}
+
+		ball.heldByAthlete = athlete;
+		athlete.heldBall = ball;
+	}
+
+	public void MoveBallToTile(Ball ball, FieldTile newTile) {
+		if (ball.heldByAthlete != null) {
+			ball.heldByAthlete.heldBall = null;
+			ball.heldByAthlete = null;
+		}
+
+		if (ball.looseInFieldTile != null) {
+			ball.looseInFieldTile.ballsLooseInTile.Remove (ball);
+			ball.looseInFieldTile = null;
+		}
+
+		//Check to see if there are athletes in the new tile that can grab the ball
+		ball.looseInFieldTile = newTile;
+		newTile.ballsLooseInTile.Add (ball);
+	}
+	*/
+
+	/*
+	public void LoseBall(Action action) {
+		int randoDirection = Random.Range (0, 4);
+		FieldTile tileTested;
+		FieldTile tileLostTo;
+		if (action.fieldTile != null) {
+			tileTested = action.fieldTile;
+		} else {
+			tileTested = action.athlete.currentFieldTile;
+		}
+
+		if (randoDirection < action.fieldTile.neighborList.Count) {
+			tileLostTo = action.fieldTile.neighborList [randoDirection];
+		} else { //It goes out of bounds or into the goal
+			Debug.Log("Lost the ball out of bounds (or into the goal).");
+		}
+	}
+	*/
+
+	//public void GiveBallToRandomNearbyOpponent
 
 	/*
 	public void BeginNextPlay() {
@@ -903,20 +1544,6 @@ public class Matchup {
 
 		BeginNextPlay ();
 	}
-	*/
-
-	//I probably don't need this function
-	public bool Roll(int chance) {
-		bool success = true;
-		int rando = Random.Range (0, 101);
-		if (rando > chance) {
-			success = false;
-		}
-
-		return success;
-	}
-
-	/*
 
 	//Could make this function take the relative field position to cut down on some lines
 	public void MoveAthleteToPosition(Athlete athlete, int newFieldPosition) {
@@ -1195,12 +1822,12 @@ public class Matchup {
 
 		InsertNextPlay (newbie, true);
 	}
-	*/
 
 	public void InsertNextPlay(Athlete athlete, bool withBall) {
 		Play nextPlay = new Play (athlete, withBall);
 		playOrder.Insert (playNumber + 1, nextPlay); //Inserts the next play imediately after this play.
 	}
+	*/
 
 	public void ConcludeMatch() {
 		GameController.movementPaused = false;
@@ -1229,18 +1856,15 @@ public class Matchup {
 		}
 
 		if (matchManager.matchUIObject.activeSelf == true) {
-			matchManager.UndisplayMatchupUI (this);
+			//matchManager.UndisplayMatchupUI (this);
+			matchManager.DisplayConclusionPanel();
 		}
-			
-		for (int i = 0; i < homeTeam.rosterList.Count; i++) {
-			homeTeam.rosterList [i].currentFieldTile = null;
-		}
-		homeTeam.teamManager.currentFieldTile = null;
 
-		for (int i = 0; i < awayTeam.rosterList.Count; i++) {
-			awayTeam.rosterList [i].currentFieldTile = null;
+		for(int i = 0; i < athletesOnField.Count; i++) {
+			athletesOnField[i].activeAction = null;
+			athletesOnField[i].currentFieldTile = null;
+			athletesOnField[i].originalLineupTile = null;
 		}
-		awayTeam.teamManager.currentFieldTile = null;
 
 		bool allTeamsPlayed = true;
 		for (int i = 0; i < homeTeam.league.weeklyListOfMatchupsForSeason [GameController.week].Count; i++) {

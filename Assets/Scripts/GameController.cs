@@ -191,7 +191,7 @@ public class GameController : MonoBehaviour {
 		countyPanel.GetComponent<Image> ().color = county.countyColor;
 
 		countyNameText.text = county.countyName;
-		capitalCityNameText.text = "Capital City of " + county.GetCapitalCity ().cityName;
+		capitalCityNameText.text = "Capital City: " + county.GetCapitalCity ().cityName;
 
 		countyPopulationText.text = county.GetTotalPopulation ().ToString ();
 		countyPrestigeText.text = county.GetTotalPrestige ().ToString();
@@ -361,7 +361,6 @@ public class GameController : MonoBehaviour {
 
 		if (playerManager == null) {
 			teamSelectionButton.gameObject.SetActive (true);
-			teamSelectionButton.gameObject.GetComponent<Image> ().color = team.teamColor;
 			string teamString = "";
 			if (team.thePronoun) {
 				teamString += "the ";
@@ -808,8 +807,49 @@ public class GameController : MonoBehaviour {
 			match.SimulateMatch ();
 		} else {
 			StopAllCoroutines ();
+
+			for (int i = 0; i < brimshireLeague.weeklyListOfMatchupsForSeason [week].Count; i++) { //Hide the battle markers
+				if(brimshireLeague.weeklyListOfMatchupsForSeason[week][i].battleMarker != null) {
+					brimshireLeague.weeklyListOfMatchupsForSeason[week][i].battleMarker.SetActive(false);
+				}
+			}
+
+			for (int c = 0; c < countyObjects.Count; c++) {
+				League countyLeague = countyObjects [c].GetComponent<CountyController> ().countyLeague;
+
+				for (int m = 0; m < countyLeague.weeklyListOfMatchupsForSeason [week].Count; m++) {
+					if(countyLeague.weeklyListOfMatchupsForSeason[week][m].battleMarker != null) {
+						countyLeague.weeklyListOfMatchupsForSeason[week][m].battleMarker.SetActive(false);
+					}
+				}
+			}
+
 			matchManager.DisplayMatchUI (match);
 		}
+	}
+
+	public void ExitMatchUI() {
+		for (int i = 0; i < brimshireLeague.weeklyListOfMatchupsForSeason [week].Count; i++) { //Reveal the battle markers
+			if(brimshireLeague.weeklyListOfMatchupsForSeason[week][i].battleMarker != null) {
+				brimshireLeague.weeklyListOfMatchupsForSeason[week][i].battleMarker.SetActive(true);
+			}
+		}
+
+		for (int c = 0; c < countyObjects.Count; c++) {
+			League countyLeague = countyObjects [c].GetComponent<CountyController> ().countyLeague;
+			for (int m = 0; m < countyLeague.weeklyListOfMatchupsForSeason [week].Count; m++) {
+				if(countyLeague.weeklyListOfMatchupsForSeason[week][m].battleMarker != null) {
+					countyLeague.weeklyListOfMatchupsForSeason[week][m].battleMarker.SetActive(true);
+				}
+			}
+		}
+
+		StartCoroutine (ZoomAndShiftCameraTo (cameraStartPosition, cameraFullSize, 2f));
+		//These should probably come after the camera has been unzoomed but isn't a big deal for now.
+		movementPaused = false;
+		canHoverMatches = true;
+
+		StartTeamMovement();
 	}
 
 	#endregion
@@ -877,12 +917,6 @@ public class GameController : MonoBehaviour {
 
 	#endregion
 
-	#region Displaying Matches for Players
-
-
-
-	#endregion
-
 	#region Concluding Week
 
 	public void LastMatchCompleted() {
@@ -901,7 +935,7 @@ public class GameController : MonoBehaviour {
 
 		brimshireLeague.SetTeamStandings ();
 
-		leagueViewButton.gameObject.SetActive (true);
+		//leagueViewButton.gameObject.SetActive (true);
 
 		for (int i = 0; i < brimshireLeague.weeklyListOfMatchupsForSeason [week].Count; i++) { //Clear the battleMarkers from the previous week
 			Destroy (brimshireLeague.weeklyListOfMatchupsForSeason [week] [i].battleMarker);

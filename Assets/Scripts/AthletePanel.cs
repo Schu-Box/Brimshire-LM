@@ -51,22 +51,25 @@ public class AthletePanel : MonoBehaviour {
 				//descriptorText.text = "";
 				descriptorPanel.SetActive(false);
 			} else {
-				//descriptorText.text = "";
-				Debug.Log("Called (but I don't think it will be.");
 				descriptorPanel.SetActive(true);
 			}
 
 			if (matchManager.matchFieldParent.activeSelf == false) { //If the match is not active
 				button.onClick.AddListener (() => gameController.DisplayAthletePanel (gameObject, a));
 			} else { //If the match is active
+//This script will no longer be used in matches, only during the management phase
+				/*
 				if (athlete.currentFieldTile == null) { 
 					button.onClick.AddListener (() => matchManager.SelectAthlete (athlete));
 				} else { //Athlete is on field
 					bodyImg.color = Color.Lerp (bodyImg.color, Color.black, 0.7f);
 					jerseyImg.color = Color.Lerp (jerseyImg.color, Color.black, 0.7f);
 
-					button.onClick.AddListener (() => matchManager.RemoveAthleteFromField (athlete));
+					if (matchManager.matchAthleteSelectionGroup.transform.parent.gameObject.activeSelf == true) {
+						button.onClick.AddListener (() => matchManager.RemoveAthleteFromField (athlete));
+					}
 				}
+				*/
 			}
 		} else {
 			nameText.text = "";

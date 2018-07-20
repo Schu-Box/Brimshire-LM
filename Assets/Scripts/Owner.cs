@@ -73,7 +73,7 @@ public class Owner {
 		if (rude) {
 			welcomeMessages.Add ("It's been 10 full years since the last Brimshire League match. That was probably before you were born, wasn't it? " +
 			"Well let's just say things ended badly last time. Lots of people died and all that. Anyways welcome to " + teamString + ". You were the best candidate " +
-			"available at the moment but don't get too comfortable. If you don't meet my expectations then you'll be looking for a position with some shitty city " +
+			"available at the moment but don't get too comfortable. If you don't meet my expectations then you'll be looking for a position with some puny city " +
 			"league team. Don't let that stress you out though. I'm sure you'll do just fine. You'd better. I'll be watching.");
 			welcomeMessages.Add ("Let's get something clear. I've laid out a few expectations for this season. If you don't meet those then I'll find somebody else " +
 			"who can. Your job isn't to listen to the fans or to the athletes. You listen to me, got it? Anyways we're really looking forward to having you on " +
@@ -85,13 +85,13 @@ public class Owner {
 			regularSeasonWinMessages.Add ("What a team I've assembled! What do I even pay you for? Surely with athletes like this they don't even need a manager! Nevertheless you've got the job and you're executing admirably. Stay the course.");
 			regularSeasonWinMessages.Add ("What an ugly victory. Surely we could've doubled their score? I won't settle for simply defeating our opponents. I want to absolutely embarass them. Teams should tremble in fear when they see us walk out onto the pitch.");
 
-			regularSeasonLossMessages.Add ("What in the fuck was that? I expect better from you. I don't make nearly as much money when we lose so it's time for you to start winning.");
+			regularSeasonLossMessages.Add ("What was that!? I expect better from you. Keep losing like that and I'll have to deal with the smug faces of all the other owners at our next meeting. Don't make me suffer like that. Get back to winning.");
 			regularSeasonLossMessages.Add ("If that's the type of performance we can expect from our athletes then it's time to ship them out and find some players with true passion that know how to win. If you don't make some changes then I'll find someone who will.");
 			regularSeasonLossMessages.Add ("Are you serious? You expect me to believe that's the best our team can do? Perhaps you're being too soft on them. I need you to inspire them to victory and I don't care how you do it. Threaten their roles, salaries, or families if you must. Just get it done.");
 		}
 
 		if (patient) {
-			regularSeasonWinMessages.Add ("That was a well fought win, but don't let it get to your head. Take some time to rest up, get the team ready, and do it all again next week. We're competing for something grander.");
+			regularSeasonWinMessages.Add ("That was a well fought win. You and our athletes deserve to celebrate. But don't let one little victory go to your head. Take some time to rest up, get the team ready, and do it all again next week. We're competing for something grander.");
 
 			regularSeasonLossMessages.Add ("What a heart breaking loss. Surely we'll bounce back! I have complete faith in your abilities, coach.");
 			regularSeasonLossMessages.Add ("Ahhh that was a rough one. No worries, though. I look forward to seeing how you respond next week.");
@@ -101,7 +101,7 @@ public class Owner {
 			regularSeasonWinMessages.Add ("I'll be pouring a tall glass of victory champaign tonight! Someday maybe I'll invite you to join me. Perhaps after you bring our fine city a championship banner. But until that day just keep doing what you're doing. Fantastic work.");
 			regularSeasonWinMessages.Add ("I sure do love winning! Keep racking up the Ws and I'll keep racking up the gold! Maybe some of that trickles down to you, eh?");
 
-			regularSeasonLossMessages.Add ("Oh well. I've got much more important things to worry about at the moment. I'd appreciate it if you tried harder to win. That is your job though, I shouldn't have to tell you. Surely you'll make some changes and get us back on track.");
+			regularSeasonLossMessages.Add ("Oh well. I've got much more important things to worry about at the moment. I'd appreciate it if you tried harder to win. That is your job though. I shouldn't have to tell you. Surely you'll make some changes and get us back on track.");
 		} else {
 			welcomeMessages.Add ("Welcome to the " + teamString + "! We're really looking forward to working with you throughout the season. " +
 			"Unlike most of the other owners, I wasn't born into wealth so I understand the work that goes into building something from the ground up, which is what " +
@@ -110,9 +110,9 @@ public class Owner {
 			"reach their full potential and feel free to ship off those that don't fit with your vision.");
 
 			regularSeasonWinMessages.Add ("Let's go, baby! All day! That's how you do it! I'll be celebrating in the streets of " + team.GetCity ().cityName + " with the townsfolk tonight!");
-			regularSeasonWinMessages.Add ("With victoris liek that surly well win the championship!!!! Bit drunk at the moment. Talkt o you later. Good jog");
+			regularSeasonWinMessages.Add ("With victoris lie that surly well win the championship!!!!!! Bit drunk at the moment. Talkt o you later. Good jog");
 
-			regularSeasonLossMessages.Add ("I've understood losing my entire life. I wasn't born into wealth like most of the other owners. It's no big deal we lost this week. I trust and believe in you, coach.");
+			regularSeasonLossMessages.Add ("Losing is a part of life. The other owners thought a commoner such as myself couldn't compete at this level but here I am. And here you are with me. It's no big deal we lost this week. I trust and believe in you, coach.");
 		}
 
 		if (!watchesEveryGame) {
@@ -127,7 +127,7 @@ public class Owner {
 		if (!understandsSports) {
 			regularSeasonWinMessages.Add ("Brilliant performance! You told the athletes to score more this week, didn't you? Or did you tell them to get scored on less? Either way, whatever you're doing is working. Maybe next week you can tell them to score even more!");
 
-			regularSeasonLossMessages.Add ("Oh dear. Surely that isn't the type of performance I should expect from the squad on a regular basis? Isn't there some coaching or something that you can do? Can you tell our athletes to try scoring more? Regardless, I'm sure you'll get everyone back on track. You know the consequences if you don't.");
+			regularSeasonLossMessages.Add ("Oh dear. Surely that isn't the type of performance I should expect from the squad on a regular basis? Isn't there some coaching or something that you can do? Can you tell our athletes to try scoring more? Regardless, I'm sure you'll get everyone back on track.");
 		}
 
 		regularSeasonByeMessages.Add ("We didn't have a match this week so I've got nothing to say. Hopefully you're keeping our athletes fresh and ready to roll.");
@@ -432,7 +432,7 @@ public class Owner {
 					"expectations for next season I promise you that it'll be your last with " + teamString + ".");
 				} else {
 					offseasonMessages.Add ("I gave you three simple expectations at the start of the season and you failed to meet each and every one of them. That's " +
-					"simply unacceptable. You had an entire season to work towads them. What the fuck were you even doing? You've wasted a year of my time " +
+					"simply unacceptable. You had an entire season to work towads them. What in the world were you even doing? You've wasted a year of my time " +
 					"and resources and you've let down the good people of " + team.GetCity ().cityName + ". You're fired. Get out of my sight.");
 				}
 			}

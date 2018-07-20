@@ -48,17 +48,19 @@ public class Athlete {
 	private TeamController team;
 
 	//On Field Data
-	public List<Action> availableActionList = new List<Action>();
+	public List<Opportunity> availableOpportunityList = new List<Opportunity>();
 	//public bool onField = false;
 	//public bool performingAction = false;
 	public GameObject athleteOnFieldObject;
-	public AthletePanel athletePanelInMatch;
+	public AthleteMatchPanel athleteMatchPanel;
+	public FieldTile originalLineupTile;
 	public FieldTile currentFieldTile;
 	public Action activeAction;
 	/*
 	public int rowNum = -1;
 	public int columnNum = -1;
 	*/
+	public Ball heldBall = null;
 
 
 
