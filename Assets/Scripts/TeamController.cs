@@ -17,7 +17,7 @@ public class TeamController : MonoBehaviour {
 	public int yearEstablished = 3000;
 	[TextArea(1, 16)] public string teamDescription;
 
-	public int startingRosterCount = 3;
+	private int startingRosterCount = 3;
 
 	public Owner owner;
 

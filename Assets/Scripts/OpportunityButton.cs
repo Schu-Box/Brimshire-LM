@@ -9,9 +9,6 @@ public class OpportunityButton : MonoBehaviour, IPointerEnterHandler, IPointerEx
 	public Opportunity opportunity;
 	public Text actionText;
 	public Text actionDescriptionText;
-	public GameObject specificActionPanel;
-	public Text percentageText;
-	public Text timeTakenText;
 
 	/*
 	#region IPointerClickHandler implementation

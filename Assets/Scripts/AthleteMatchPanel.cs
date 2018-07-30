@@ -10,21 +10,32 @@ public class AthleteMatchPanel : MonoBehaviour {
 	public Text nameText;
 	public Image bodyImg;
 	public Image jerseyImg;
+	public Image ballImg;
 	public Text positionText;
+
+	public Text overallText;
+	public Text speedText;
+	public Text strengthText;
+	public Text ballControlText;
+	public Text defenseText;
 	public Slider actionSlider;
+
+
 	public Image selectionBorderImg;
 	private Button button;
 
 	private MatchManager matchManager;
 
-	void Start() {
+	void Awake() {
 		matchManager = FindObjectOfType<MatchManager>();
 		button = GetComponent<Button>();
 	}
 
 	public void SetAthleteMatchPanel(Athlete a) {
-		if(a != null) {
-			athlete = a;
+		athlete = a;
+
+		if(athlete != null) {
+			athlete.athleteMatchPanel = this;
 
 			Color teamColor = athlete.GetTeam().teamColor;
 
@@ -34,9 +45,18 @@ public class AthleteMatchPanel : MonoBehaviour {
 			jerseyImg.color = teamColor;
 			positionText.text = athlete.positionName;
 
+			ballImg.enabled = false;
+
+			overallText.text = athlete.overallRating.ToString();
+			speedText.text = athlete.GetAttributeValue("speed").ToString();
+			strengthText.text = athlete.GetAttributeValue("strength").ToString();
+			ballControlText.text = athlete.GetAttributeValue("ball control").ToString();
+			defenseText.text = athlete.GetAttributeValue("defense").ToString();
+
 			selectionBorderImg.color = teamColor;
 			//selectionBorderImg.enabled = false;
 			
+			button.enabled = true;
 			button.onClick.RemoveAllListeners();
 
 			if(athlete.currentFieldTile == null) {
@@ -52,11 +72,13 @@ public class AthleteMatchPanel : MonoBehaviour {
 			} else {
 				actionSlider.GetComponentInChildren<Text>().text = "Waiting to Start the Match";
 
-				if(a.GetTeam() == GameController.playerManager.GetTeam()) {
+				if(a.GetTeam() == GameController.playerManager.GetTeam() && !matchManager.currentMatch.matchStarted) {
 					button.onClick.AddListener(() => matchManager.RemoveAthleteFromField(this));
 				} else {
 					button.enabled = false;
 				}
+
+				selectionBorderImg.enabled = true;
 			}
 		} else {
 			gameObject.SetActive(false);

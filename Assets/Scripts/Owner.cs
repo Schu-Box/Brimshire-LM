@@ -43,6 +43,10 @@ public class Owner {
 		team = t;
 	}
 
+	public TeamController GetTeam() {
+		return team;
+	}
+
 	public void SetMessages() {
 
 		if (team.thePronoun) {

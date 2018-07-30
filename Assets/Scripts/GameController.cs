@@ -9,6 +9,14 @@ public class GameController : MonoBehaviour {
 	[Header("New Canvas")]
 
 	public GameObject textPrefab;
+	public GameObject schedulePrefab;
+	public Vector3 panelCenterPosition = new Vector3(0, -64, 0);
+	public Vector3 panelBelowPosition = new Vector3(0, -1550, 0);
+
+	[Header("Start Menu")]
+	public GameObject titlePanel;
+	public Text titleBrimshireText;
+	public Text titleLeagueManagerText;
 
 	[Header("Top Banner")]
 	public Button exitButton;
@@ -44,7 +52,6 @@ public class GameController : MonoBehaviour {
 	public Image teamShieldImage;
 	public Image teamLogoPrimaryImage;
 	public Image teamLogoSecondaryImage;
-	public Text teamEstablishedYearText;
 	public Text ownerNameText;
 	public List<GameObject> ownerValuesList = new List<GameObject> ();
 	public Button teamSelectionButton;
@@ -61,6 +68,7 @@ public class GameController : MonoBehaviour {
 	public GameObject bridgePanel; //Should only be temporary and replaced with bridges connected to athleteDetailPanel eventually
 	public GameObject athleteDetailPanel;
 	public List<Button> athleteOptionButtons = new List<Button> ();
+	public Image bodyImage;
 
 	public Text ageText;
 	public Text raceText;
@@ -77,6 +85,7 @@ public class GameController : MonoBehaviour {
 	public Text ownerDeclarationText;
 	public Text ownerBodyText;
 	public Text ownerSignatureText;
+	public Button closeMessageButton;
 
 	public List<GameObject> ownerExpectationsObjectList;
 	public List<GameObject> ownerObjectivesObjectList;
@@ -96,6 +105,9 @@ public class GameController : MonoBehaviour {
 	public GameObject leagueStandingsHolder;
 	public GameObject leagueTeamUIPrefab;
 	public GameObject leaguePreviousChampionTeamUI;
+
+	[Header("World Canvas")]
+	public Text yourTeamText;
 
 	//End of UI
 
@@ -152,6 +164,8 @@ public class GameController : MonoBehaviour {
 		matchHoverPanel.SetActive (false);
 		leaguePanel.SetActive (false);
 
+		yourTeamText.gameObject.SetActive(false);
+
 		fogLayer.SetActive (false);
 
 		/*
@@ -173,6 +187,31 @@ public class GameController : MonoBehaviour {
 		brimshireLeague.SetTeamStandings ();
 
 		leagueViewButton.onClick.AddListener (() => DisplayLeaguePanel (brimshireLeague));
+
+		StartCoroutine(DisplayTitleScreen());
+	}
+
+	public IEnumerator DisplayTitleScreen() {
+		canInteractWithMap = false;
+		titlePanel.SetActive(true);
+		fogLayer.SetActive(true);
+
+		WaitForFixedUpdate waiter = new WaitForFixedUpdate();
+		float timer = 0f;
+		float duration = 1f;
+		while(timer < duration) {
+			timer += Time.deltaTime;
+
+			yield return waiter;
+		}
+
+		
+	}
+
+	public void UndisplayTitleScreen() {
+		canInteractWithMap = true;
+		titlePanel.SetActive(false);
+		fogLayer.SetActive(false);
 	}
 
 	#region Displaying Counties/Cities
@@ -207,6 +246,11 @@ public class GameController : MonoBehaviour {
 	}
 
 	public void FocusCounty(CountyController county) {
+		exitButton.gameObject.SetActive(true);
+		exitButton.onClick.RemoveAllListeners();
+		exitButton.onClick.AddListener(() => ExitCountyToWorldView());
+		exitButton.gameObject.GetComponentInChildren<Text>().text = "Back to Kingdom";
+
 		if (focusedCounty != null && focusedCounty != county) { //If there was a previously focused county then disable all its cities hoverability
 			focusedCounty.GetComponent<SpriteRenderer>().sortingLayerName = "World";
 
@@ -238,20 +282,17 @@ public class GameController : MonoBehaviour {
 			county.cityObjects [i].GetComponent<Collider2D>().enabled = true;
 		}
 
-		UpdateTopPanel ();
+		//UpdateTopPanel ();
 	}
 
 	public void ExitCountyToWorldView() {
 		StartCoroutine (ZoomAndShiftCameraTo (cameraStartPosition, cameraFullSize, 0.8f));
-		/*
-		Camera.main.orthographicSize = cameraFullSize;
-		Camera.main.transform.position = cameraStartPosition;
-		*/
 
 		fogLayer.SetActive (false);
 
 		ownerMessagePanel.SetActive (false);
 		teamDetailPanel.SetActive (false); //Technically don't need this here but doesn't hurt
+		exitButton.gameObject.SetActive(false);
 
 		if (focusedCounty != null) {
 			focusedCounty.GetComponent<SpriteRenderer> ().sortingLayerName = "World";
@@ -266,7 +307,7 @@ public class GameController : MonoBehaviour {
 			countyObjects [i].GetComponent<CountyController> ().hoverable = true;
 		}
 
-		UpdateTopPanel ();
+		//UpdateTopPanel ();
 	}
 
 	public void DisplayCityPanel(CityController city) {
@@ -303,21 +344,33 @@ public class GameController : MonoBehaviour {
 	#endregion
 
 	#region Displaying Team
+	public IEnumerator MoveAndDisplayTeamPanel(TeamController team) {
+		CountyController teamCounty = team.GetCity().GetCounty();
+
+		yield return StartCoroutine(UndisplayTeamDetailPanel());
+
+		if(teamCounty != focusedCounty) {
+			FocusCounty(teamCounty);
+
+			//The time it takes could? be based on distance
+			yield return StartCoroutine (ZoomAndShiftCameraTo (teamCounty.countyCamFocalPos, teamCounty.countyZoomSize, 0.8f));
+		}
+
+		DisplayTeamDetailPanel(team);
+	}
+
 	public void DisplayTeamDetailPanel(TeamController team) {
 		displayTeam = team;
-
 		canInteractWithMap = false;
 
 		teamDetailPanel.SetActive (true);
+		teamDetailPanel.transform.localPosition = panelBelowPosition;
+		StartCoroutine (MoveObjectFromCurrentPositionTo (teamDetailPanel, panelCenterPosition, 0.5f));
 
-		Vector3 originalPanelPosition = teamDetailPanel.transform.localPosition;
-		originalPanelPosition.y = -64;
-
-		Vector3 offsetPanelPosition = originalPanelPosition;
-		offsetPanelPosition.y = -1550;
-		teamDetailPanel.transform.localPosition = offsetPanelPosition;
-
-		StartCoroutine (MoveObjectFromCurrentPositionTo (teamDetailPanel, originalPanelPosition, 0.5f));
+		exitButton.gameObject.SetActive(true);
+		exitButton.onClick.RemoveAllListeners();
+		exitButton.onClick.AddListener(() => StartCoroutine(UndisplayTeamDetailPanel()));
+		exitButton.gameObject.GetComponentInChildren<Text>().text = "Back to County";
 
 		if (playerManager != null && playerManager.GetTeam () == team) {
 			yourTeamPanel.SetActive (true);
@@ -331,10 +384,10 @@ public class GameController : MonoBehaviour {
 			teamDetailNameText.text += " ( " + team.winsThisSeason + " - " + team.losesThisSeason + " )";
 		}
 
-		locationPanel.GetComponent<Image> ().color = team.teamColor;
-		string locString =  "Located in " + team.GetCity ().cityName + "," + '\n';
+		string locString =  "Established " + team.yearEstablished + '\n' + "Located in " + team.GetCity ().cityName + "," + '\n';
 		if (team.GetCity ().GetCounty ().GetCapitalCity () == team.GetCity ()) {
-			capitalIndicator.color = team.teamColor;
+			//capitalIndicator.color = team.teamColor;
+			capitalIndicator.color = Color.black;
 			locString += "Capital of ";
 		} else {
 			capitalIndicator.color = Color.clear;
@@ -347,8 +400,6 @@ public class GameController : MonoBehaviour {
 		teamLogoPrimaryImage.color = team.GetCity ().GetCounty ().GetCapitalCity ().GetTeamOfCity ().teamColor; //The capital team's color
 		teamLogoSecondaryImage.color = team.teamColor;
 
-		teamEstablishedYearText.text = "Established " + team.yearEstablished + " in " + team.GetCity ().cityName;
-
 		teamDescriptionText.text = team.teamDescription;
 
 		teamGoldText.text = "Gold: " + team.gold;
@@ -356,8 +407,6 @@ public class GameController : MonoBehaviour {
 
 		team.gameObject.GetComponent<SpriteRenderer> ().enabled = false;
 		cityPanel.SetActive (false);
-
-		UpdateTopPanel ();
 
 		if (playerManager == null) {
 			teamSelectionButton.gameObject.SetActive (true);
@@ -368,7 +417,7 @@ public class GameController : MonoBehaviour {
 			teamString += team.teamName;
 			teamSelectionButton.gameObject.GetComponentInChildren<Text> ().text = "Become " + team.teamManager.name + ", manager of " + teamString + ".";
 			teamSelectionButton.onClick.RemoveAllListeners ();
-			teamSelectionButton.onClick.AddListener (() => SelectPlayerManager (team.teamManager));
+			teamSelectionButton.onClick.AddListener (() => StartCoroutine(SelectPlayerManager (team.teamManager)));
 		} else {
 			teamSelectionButton.gameObject.SetActive (false);
 		}
@@ -401,45 +450,43 @@ public class GameController : MonoBehaviour {
 		}
 
 		for (int i = 0; i < team.seasonMatchups.Count; i++) {
-			GameObject newText = Instantiate (textPrefab, schedulePanel.transform.localPosition, Quaternion.identity, schedulePanel.transform);
-			string newString;
-			Color backColor = newText.GetComponentInChildren<Image> ().color;
+			GameObject newScheduleObj = Instantiate (schedulePrefab, schedulePanel.transform.localPosition, Quaternion.identity, schedulePanel.transform);
+			
+			Matchup matchForWeek = team.seasonMatchups[i];
+			TeamController opponentForWeek = null;
 
-			if (team.seasonMatchups [i] == null) {
-				newString = "Bye" + '\n' + "Week";
-			} else {
-				if (team.seasonMatchups [i].homeTeam == team) {
-					newString = "vs" + '\n' + team.seasonMatchups [i].awayTeam.GetCity ().cityName;
-					backColor = team.seasonMatchups [i].awayTeam.teamColor;
-				} else { //This team will be playing away
-					newString = "@" + '\n' + team.seasonMatchups [i].homeTeam.GetCity ().cityName;
-					backColor = team.seasonMatchups [i].homeTeam.teamColor;
-				}
-
-				if (team.seasonMatchups [i].winner != null) { //If the game is over
-					if (team.seasonMatchups [i].winner == team) {
-						newString += '\n' + "Won ";
-
-						if (team.seasonMatchups [i].homeTeam == team) {
-							newString += team.seasonMatchups [i].homeScore.ToString () + " - " + team.seasonMatchups [i].awayScore.ToString ();
-						} else { //They're away
-							newString += team.seasonMatchups [i].awayScore.ToString () + " - " + team.seasonMatchups [i].homeScore.ToString ();
-						}
-					} else {
-						newString += '\n' + "Lost ";
-
-						if (team.seasonMatchups [i].homeTeam == team) {
-							newString += team.seasonMatchups [i].homeScore.ToString () + " - " + team.seasonMatchups [i].awayScore.ToString ();
-						} else { //They're away
-							newString += team.seasonMatchups [i].awayScore.ToString () + " - " + team.seasonMatchups [i].homeScore.ToString ();
-						}
-					}
+			if(matchForWeek != null) {
+				if(team == matchForWeek.homeTeam) {
+					opponentForWeek = matchForWeek.awayTeam;
+				} else {
+					opponentForWeek = matchForWeek.homeTeam;
 				}
 			}
 
-			newText.GetComponentInChildren<Text> ().text = newString;
-			newText.GetComponentInChildren<Image> ().color = backColor;
+			int weekInt = i;
+			newScheduleObj.GetComponent<ScheduleObject>().SetScheduleObject(opponentForWeek, weekInt);
 		}
+
+		exitButton.gameObject.SetActive(true);
+		//UpdateTopPanel ();
+	}
+
+	public IEnumerator UndisplayTeamDetailPanel() {
+		displayTeam = null;
+
+		exitButton.gameObject.SetActive(true);
+		exitButton.onClick.RemoveAllListeners();
+		exitButton.onClick.AddListener(() => ExitCountyToWorldView());
+		exitButton.gameObject.GetComponentInChildren<Text>().text = "Back to Kingdom";
+		exitButton.interactable = false;
+
+		yield return StartCoroutine (MoveObjectFromCurrentPositionTo (teamDetailPanel, panelBelowPosition, 0.5f));
+
+		exitButton.interactable = true;
+
+		canInteractWithMap = true;
+
+		FocusCounty (focusedCounty);
 	}
 
 	public void DisplayAthletePanel(GameObject athletePan, Athlete athlete) {
@@ -456,6 +503,8 @@ public class GameController : MonoBehaviour {
 			bridgePanel.SetActive (true);
 			athleteDetailPanel.SetActive (true);
 			bridgePanel.transform.position = athletePan.transform.position;
+
+			bodyImage.sprite = athlete.bodySprite;
 
 			raceText.text = athlete.race.raceName;
 			originText.text = athlete.originCountyName;
@@ -493,26 +542,7 @@ public class GameController : MonoBehaviour {
 				newStatisticLabel.GetComponentInChildren<Image> ().color = athlete.GetTeam ().teamColor;
 			}
 
-			//Athlete Option Buttons
-			int activeOptionButtons = 0;
-
-			/*
-			if (athlete.manager && playerManager == null) {
-				activeOptionButtons++;
-
-				athleteOptionButtons [0].GetComponent<Button> ().interactable = true;
-				athleteOptionButtons [0].GetComponentInChildren<Text> ().text = "Select Manager";
-
-				athleteOptionButtons [0].onClick.RemoveAllListeners ();
-				athleteOptionButtons [0].onClick.AddListener (() => SelectPlayerManager (athlete));
-
-			} else {
-				athleteOptionButtons [0].GetComponent<Button> ().interactable = false;
-				athleteOptionButtons [0].GetComponentInChildren<Text> ().text = "";
-			}
-			*/
-
-			for (int i = activeOptionButtons; i < athleteOptionButtons.Count; i++) {
+			for (int i = 0; i < athleteOptionButtons.Count; i++) {
 				athleteOptionButtons [i].GetComponent<Button> ().interactable = false;
 				athleteOptionButtons [i].GetComponentInChildren<Text> ().text = "";
 			}
@@ -530,35 +560,49 @@ public class GameController : MonoBehaviour {
 
 	#endregion
 
-	//Throw this in with a back button function
-	public void ExitTeamDetailToCountyView() {
-		displayTeam = null;
-
-		canInteractWithMap = true;
-
-		teamDetailPanel.SetActive (false);
-
-		FocusCounty (focusedCounty);
-	}
-
-	public void SelectPlayerManager(Athlete manager) {
+	public IEnumerator SelectPlayerManager(Athlete manager) {
 		Debug.Log(manager.name + " is the player now.");
 		playerManager = manager;
 
-		teamDetailPanel.SetActive (false);
-
-		ownerMessagePanel.SetActive (true);
+		yield return StartCoroutine(UndisplayTeamDetailPanel());
 
 		Owner owner = manager.GetTeam().owner;
 
-		string declarationString = "Dear " + manager.name + ",";
+		//Expectations and Objectives - Currently only for the player
+		owner.AssignExpectations (manager);
+		DisplayOwnerMessagePanel(owner);
+
+		//UpdateTopPanel ();
+
+		advanceButton.gameObject.SetActive (true);
+		advanceButton.GetComponentInChildren<Text> ().text = "Begin Season " + (brimshireLeague.seasonsPlayed + 1);
+		advanceButton.onClick.RemoveAllListeners ();
+		advanceButton.onClick.AddListener (() => StartSeason ());
+
+		//topText.text = "Begin the season.";
+
+		yourTeamText.gameObject.SetActive(true);
+		Vector3 textPos = (Vector3)manager.GetTeam().GetCityLocation();
+		textPos.y += 0.2f;
+		yourTeamText.transform.position = textPos; 
+	}
+
+	public void DisplayOwnerMessagePanel(Owner owner) {
+		ownerMessagePanel.SetActive (true);
+		exitButton.gameObject.SetActive(false);
+
+		ownerMessagePanel.transform.localPosition = panelBelowPosition;
+
+		StartCoroutine (MoveObjectFromCurrentPositionTo (ownerMessagePanel, panelCenterPosition, 0.5f));
+
+		string declarationString = "Dear " + owner.GetTeam().teamManager.name + ",";
 		ownerDeclarationText.text = declarationString;
 
 		string teamString = "";
-		if (manager.GetTeam ().thePronoun) {
+		if (owner.GetTeam ().thePronoun) {
 			teamString += "the ";
 		}
-		teamString += manager.GetTeam ().teamName;
+		teamString += owner.GetTeam ().teamName;
 
 		string bodyString = owner.GetWelcomeMessage ();
 		ownerBodyText.text = bodyString;
@@ -566,19 +610,21 @@ public class GameController : MonoBehaviour {
 		string signatureString = "Best of luck. Make me proud," + '\n' + owner.name + '\n' + "Owner of " + teamString;
 		ownerSignatureText.text = signatureString;
 
-		UpdateTopPanel ();
-
-		advanceButton.gameObject.SetActive (true);
-		advanceButton.GetComponentInChildren<Text> ().text = "Begin Season " + (brimshireLeague.seasonsPlayed + 1);
-		advanceButton.onClick.RemoveAllListeners ();
-		advanceButton.onClick.AddListener (() => StartSeason ());
-
-		topText.text = "Begin the season.";
-
-		//Expectations and Objectives - Currently only for the player
-		owner.AssignExpectations (manager);
-
 		UpdateObjectivesPanel ();
+
+		closeMessageButton.onClick.RemoveAllListeners();
+		closeMessageButton.onClick.AddListener(() => StartCoroutine(UndisplayOwnerMessagePanel()));
+	}
+
+	public IEnumerator UndisplayOwnerMessagePanel() {
+		yield return StartCoroutine (MoveObjectFromCurrentPositionTo (ownerMessagePanel, panelBelowPosition, 0.5f));
+
+		if(focusedCounty != null) {
+			exitButton.gameObject.SetActive(true);
+			exitButton.onClick.RemoveAllListeners();
+			exitButton.onClick.AddListener(() => ExitCountyToWorldView());
+			exitButton.gameObject.GetComponentInChildren<Text>().text = "Back to Kingdom";
+		}
 	}
 
 	public void UpdateObjectivesPanel() {
@@ -609,23 +655,22 @@ public class GameController : MonoBehaviour {
 		}
 	}
 
-	//Need to replace these two functions to be more flexible.
-
+	/*
 	public void ExitMessageToTeam() {
 		ownerMessagePanel.SetActive (false);
 
 		DisplayTeamDetailPanel (displayTeam);
 	}
+	*/
 
 	//Should get rid of this clunky ass function. Keep everything in their own functions.
+	/*
 	public void UpdateTopPanel() {
 		if (ownerMessagePanel.activeSelf == true) {
 			topText.text = "Read the Message";
 
-			exitButton.gameObject.SetActive (true);
-			exitButton.GetComponentInChildren<Text> ().text = "Back to Team";
-			exitButton.onClick.RemoveAllListeners ();
-			exitButton.onClick.AddListener (() => ExitMessageToTeam ());
+			closeMessageButton.onClick.RemoveAllListeners();
+			closeMessageButton.onClick.AddListener(() => StartCoroutine(UndisplayOwnerMessagePanel()));
 		} else if (teamDetailPanel.activeSelf == true) {
 			//if player hasn't selected a manager
 			if (playerManager == null) {
@@ -651,6 +696,7 @@ public class GameController : MonoBehaviour {
 			}
 		}
 	}
+	*/
 
 	public void StartSeason() {
 		Debug.Log ("Starting Season " + (brimshireLeague.seasonsPlayed + 1));
@@ -676,7 +722,7 @@ public class GameController : MonoBehaviour {
 		canInteractWithMap = false;
 
 		leagueViewButton.gameObject.SetActive (false);
-		topText.text = "";
+		//topText.text = "";
 
 		ExitCountyToWorldView ();
 		UndisplayLeaguePanel ();
@@ -982,11 +1028,8 @@ public class GameController : MonoBehaviour {
 		advanceButton.gameObject.SetActive (false);
 
 		ownerMessagePanel.SetActive (true);
-
-		exitButton.gameObject.SetActive (true);
-		exitButton.onClick.RemoveAllListeners ();
-		exitButton.onClick.AddListener (() => CloseOwnerMessage ());
-		exitButton.GetComponentInChildren<Text> ().text = "Close Message";
+		closeMessageButton.onClick.RemoveAllListeners();
+		closeMessageButton.onClick.AddListener(() => CloseOwnerMessage());
 
 		Athlete manager = playerManager;
 		Owner owner = playerManager.GetTeam ().owner;
@@ -1056,9 +1099,11 @@ public class GameController : MonoBehaviour {
 
 		ownerMessagePanel.SetActive(false);
 
-		exitButton.gameObject.SetActive (false);
+		//exitButton.gameObject.SetActive (false);
 
 		advanceButton.gameObject.SetActive (true);
+
+		//UpdateTopPanel();
 	}
 
 	public void BeginPostseason() {
@@ -1102,11 +1147,8 @@ public class GameController : MonoBehaviour {
 
 		ownerMessagePanel.SetActive(true);
 		ownerBodyText.text = playerManager.GetTeam ().owner.GetEndMessage ();
-
-		exitButton.gameObject.SetActive (true);
-		exitButton.onClick.RemoveAllListeners ();
-		exitButton.onClick.AddListener (() => CloseOwnerMessage ());
-		exitButton.GetComponentInChildren<Text> ().text = "Close Message";
+		closeMessageButton.onClick.RemoveAllListeners();
+		closeMessageButton.onClick.AddListener(() => CloseOwnerMessage());
 
 		advanceButton.onClick.RemoveAllListeners ();
 		if (true) { //Replace this with some bool checking to see if there's a draft
@@ -1140,10 +1182,8 @@ public class GameController : MonoBehaviour {
 		playerManager.GetTeam ().owner.AssignExpectations (playerManager);
 		UpdateObjectivesPanel ();
 
-		exitButton.gameObject.SetActive (true);
-		exitButton.onClick.RemoveAllListeners ();
-		exitButton.onClick.AddListener (() => CloseOwnerMessage ());
-		exitButton.GetComponentInChildren<Text> ().text = "Close Message";
+		closeMessageButton.onClick.RemoveAllListeners();
+		closeMessageButton.onClick.AddListener(() => CloseOwnerMessage());
 
 		advanceButton.GetComponentInChildren<Text> ().text = "Begin Season " + (brimshireLeague.seasonsPlayed + 1);
 		advanceButton.onClick.RemoveAllListeners ();

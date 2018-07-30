@@ -12,9 +12,9 @@ public class Athlete {
 		" the High", " the Honorable", " the Fair", " the Fat", " the Wizard", " the Monotone", " the Studious", " the Bold", " the Pariah",
 		" the Hero", " the Silent", " the Maximizer", " the Genius", " the Funky", " the Serious", " the Stern", " the Furious", " the Brutal", " the Cheater",
 		" the Artist", " the Inheritor", " the Wildcat", " the Contrarian", " of Old School", " the Legend", " the Glorious", " the Beautiful",
-		" the Charming", " of the People", ", ya boi", ", Destroyer", " the Best", " the Bigly", " the Big Baller", " the Royal", " the Regal", " the Regent",
+		" the Charming", " of the People", ", ya boi", ", ya gurl", ", Destroyer", " the Best", " the Bigly", " the Big Baller", " the Royal", " the Regal", " the Regent",
 		" the Ruler", " the Tactician", " the Athlete", " the Savage", " the Cunning", " the Mastermind", " the Gamesman", " One-Limb", " Two-Nosed", " the Blind",
-		" the Seer", ", Chooken Chaser", " the Prick", " the Insufferable", " Stooper", " Viceroy"
+		" the Seer", ", Chooken Chaser", " the Jerk", " the Insufferable", " Stooper", " Viceroy", " the Bully", " the Slim"
 	};
 
 	/*
@@ -39,6 +39,8 @@ public class Athlete {
 
 	public Sprite bodySprite;
 	public Sprite jerseySprite;
+
+	public int overallRating = 0;
 
 	public List<Attribute> attributeList = new List<Attribute> ();
 	public List<Statistic> statisticList = new List<Statistic> ();
@@ -89,20 +91,24 @@ public class Athlete {
 		age += Random.Range (6, 12);
 		originCountyName = gameController.countyObjects [Random.Range (0, gameController.countyObjects.Count)].GetComponent<CountyController> ().countyName;
 
-		attributeList.Add (new Attribute ("Speed")); //Things like movement time
-		attributeList.Add (new Attribute ("Strength")); //Things like punches
-		attributeList.Add (new Attribute ("Reflex")); //Things like saving the ball and turn order 
-		attributeList.Add (new Attribute ("Accuracy")); //Their likelihood to score and pass
-		attributeList.Add (new Attribute ("Ball Control")); //Securing the ball, preventing steals
+		attributeList.Add(new Attribute ("Speed")); //Movement time
+		attributeList.Add(new Attribute ("Strength")); //How far they can hit the ball, any offensive shoving actions
+		attributeList.Add(new Attribute ("Ball Control")); //Securing the ball, preventing steals, shot/pass accuracy
+		attributeList.Add(new Attribute("Defense")); //Any defensive actions
+		/*
 		attributeList.Add (new Attribute ("Resilience")); //Health, how likely they are to be pushed
-		attributeList.Add (new Attribute ("On Ball Defense")); //Attempting to make a play on the ball
-		attributeList.Add (new Attribute ("Off Ball Defense")); //Marking an opponent, building defenses
-		attributeList.Add (new Attribute ("Athleticism")); //Vertical and has slight impact on everything
 		//Strategy? Awareness?
+
+		attributeList.Add (new Attribute ("Athleticism")); //Vertical and has slight impact on everything
+		*/
 
 		for (int i = 0; i < attributeList.Count; i++) {
 			attributeList [i].value = Random.Range (1, 21);
+
+			overallRating += attributeList[i].value;
 		}
+
+		overallRating = (int)(overallRating/attributeList.Count);
 
 		//statisticList.Add (new Statistic ("Seasons Played"));
 		statisticList.Add (new Statistic ("Matches Played"));

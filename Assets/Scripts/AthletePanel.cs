@@ -7,13 +7,14 @@ public class AthletePanel : MonoBehaviour {
 
 	public Athlete athlete = null;
 
-	[HideInInspector] public Text nameText;
-	[HideInInspector] public Image bodyImg;
-	[HideInInspector] public Image jerseyImg;
-	[HideInInspector] public Text positionText;
+	public Text nameText;
+	public Image bodyImg;
+	public Image jerseyImg;
+	public Text positionText;
+	public Text overallStatText;
+	public GameObject descriptorPanel;
+	public Text descriptorText;
 	[HideInInspector] public Button button;
-	[HideInInspector] public GameObject descriptorPanel;
-	[HideInInspector] public Text descriptorText;
 
 	private GameController gameController;
 	private MatchManager matchManager;
@@ -21,13 +22,6 @@ public class AthletePanel : MonoBehaviour {
 	public void Awake() {
 		gameController = FindObjectOfType<GameController> ();
 		matchManager = FindObjectOfType<MatchManager>();
-
-		nameText = transform.GetChild (0).GetComponent<Text> ();
-		bodyImg = transform.GetChild (1).GetComponent<Image> ();
-		jerseyImg = transform.GetChild (2).GetComponent<Image> ();
-		positionText = transform.GetChild (3).GetComponent<Text> ();
-		descriptorPanel = transform.GetChild (4).gameObject;
-		descriptorText = transform.GetChild (4).GetComponentInChildren<Text> ();
 		button = GetComponent<Button> ();
 	}
 
@@ -47,40 +41,26 @@ public class AthletePanel : MonoBehaviour {
 			jerseyImg.sprite = a.jerseySprite;
 			jerseyImg.color = a.GetTeam ().teamColor;
 
-			if (a.activeAction == null) { //Should always be the case since panels are set at the start of matches and in between matches
-				//descriptorText.text = "";
-				descriptorPanel.SetActive(false);
-			} else {
-				descriptorPanel.SetActive(true);
-			}
+			overallStatText.text = a.overallRating.ToString();
 
-			if (matchManager.matchFieldParent.activeSelf == false) { //If the match is not active
-				button.onClick.AddListener (() => gameController.DisplayAthletePanel (gameObject, a));
-			} else { //If the match is active
-//This script will no longer be used in matches, only during the management phase
-				/*
-				if (athlete.currentFieldTile == null) { 
-					button.onClick.AddListener (() => matchManager.SelectAthlete (athlete));
-				} else { //Athlete is on field
-					bodyImg.color = Color.Lerp (bodyImg.color, Color.black, 0.7f);
-					jerseyImg.color = Color.Lerp (jerseyImg.color, Color.black, 0.7f);
+			descriptorPanel.SetActive(false);
 
-					if (matchManager.matchAthleteSelectionGroup.transform.parent.gameObject.activeSelf == true) {
-						button.onClick.AddListener (() => matchManager.RemoveAthleteFromField (athlete));
-					}
-				}
-				*/
-			}
+			button.onClick.AddListener (() => gameController.DisplayAthletePanel (gameObject, a));
 		} else {
+
+			for(int i = 0; i < transform.childCount; i++) {
+				transform.GetChild(i).gameObject.SetActive(false);
+			}
+			button.interactable = false;
+
+			/*
 			nameText.text = "";
 			bodyImg.enabled = false;
 			jerseyImg.enabled = false;
 			positionText.text = "";
+			overallStatText.text = "";
 			descriptorPanel.SetActive (false);
-
-			//athleteButton.onClick.AddListener (() => UndisplayAthletePanel ());
-
-			button.interactable = false;
+			*/
 		}
 	}
 }
