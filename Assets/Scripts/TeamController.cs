@@ -14,6 +14,7 @@ public class TeamController : MonoBehaviour {
 
 	public string teamName;
 	public bool thePronoun = true;
+	public string teamAbbreviation;
 	public int yearEstablished = 3000;
 	[TextArea(1, 16)] public string teamDescription;
 
@@ -55,7 +56,7 @@ public class TeamController : MonoBehaviour {
 	};
 	*/
 
-	public void InitializeTeam(CityController cityBelongingTo) {
+	public void InitializeTeam(CityController cityBelongingTo, bool primaryCityTeam) {
 		SetCity (cityBelongingTo);
 
 		gameController = FindObjectOfType<GameController> ();
@@ -68,11 +69,13 @@ public class TeamController : MonoBehaviour {
 		InitializeRoster ();
 
 		//Will need to modify this if teams can start in the primary league without being the capital.
-		if (GetCity ().GetCounty ().GetCapitalCity () == GetCity ()) {
+		if (GetCity ().GetCounty ().GetCapitalCity () == GetCity () && primaryCityTeam) {
 			gameController.brimshireLeague.teamList.Add (this); //Add this team to the primary league
 			league = gameController.brimshireLeague;
 		} else {
-			GetCity ().GetCounty ().countyLeague.teamList.Add (this);
+			if(cityBelongingTo.GetTeamOfCity() == this) { //If they're the only team in the city. (Additional teams are only used for the tutorial for now)
+				GetCity ().GetCounty ().countyLeague.teamList.Add (this);
+			}
 			league = GetCity ().GetCounty ().countyLeague;
 		}
 

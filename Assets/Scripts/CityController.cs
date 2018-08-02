@@ -24,7 +24,11 @@ public class CityController : MonoBehaviour, IPointerClickHandler, IPointerEnter
 		SetTeamOfCity (teamObjects [0].GetComponent<TeamController> ());
 
 		for (int i = 0; i < teamObjects.Count; i++) {
-			teamObjects [i].GetComponent<TeamController> ().InitializeTeam (this);
+			if(i == 0) {
+				teamObjects [i].GetComponent<TeamController> ().InitializeTeam (this, true);
+			} else {
+				teamObjects[i].GetComponent<TeamController> ().InitializeTeam (this, false);
+			}
 		}
 
 		GetComponent<SpriteRenderer> ().enabled = false;

@@ -135,7 +135,8 @@ public class MatchManager : MonoBehaviour {
 
 		
 
-		Vector3 matchPosition = match.battleMarker.transform.position;
+		Vector3 matchPosition = match.homeTeam.GetCityLocation();
+		//match.battleMarker.transform.position;
 		matchFieldParent.transform.position = matchPosition;
 		matchUIObject.transform.position = matchPosition;
 
@@ -194,7 +195,7 @@ public class MatchManager : MonoBehaviour {
 			for(int j = 0; j < matchGridHolder.transform.GetChild(i).childCount; j++) {
 				fieldGridCells[i].Add (matchGridHolder.transform.GetChild (i).GetChild (j).GetComponent<FieldCellController> ());
 				FieldCellController cell = fieldGridCells [i] [j];
-
+				
 				cell.fieldTile = currentMatch.fieldGrid [i] [j];
 
 				cell.highlightSpriter.color = GameController.playerManager.GetTeam().teamColor;
@@ -422,12 +423,18 @@ public class MatchManager : MonoBehaviour {
 		jerseySpriteRend.sprite = placedAthlete.jerseySprite;
 		jerseySpriteRend.color = placedAthlete.GetTeam ().teamColor;
 
+		Debug.Log("YO");
+
 		if (placedAthlete.currentFieldTile == null) { //If the athlete is not on the field then add them to the field
-			placedAthlete.GetTeam ().seasonMatchups [GameController.week].AddAthleteToFieldGrid (placedAthlete, gridCell.fieldTile); //Put the athlete in the grid data
+			currentMatch.AddAthleteToFieldGrid (placedAthlete, gridCell.fieldTile); //Put the athlete in the grid data
 		}
+
+		Debug.Log("Got emm");
 
 		placedAthlete.athleteMatchPanel.SetAthleteMatchPanel(placedAthlete);
 		placedAthlete.athleteMatchPanel.selectionBorderImg.enabled = true;
+
+		Debug.Log("Checking");
 
 		CheckForGameStart (GameController.playerManager.GetTeam()); //The player's team
 	}
@@ -915,9 +922,9 @@ public class MatchManager : MonoBehaviour {
 
 		WaitForFixedUpdate waiter = new WaitForFixedUpdate();
 		Vector3 newScale = timeText.transform.localScale;
-		float timeWait = 0.8f;
+		float timeWait = 0.5f;
 		float timer = 0f;
-		float speed = Time.deltaTime/1.5f;
+		float speed = 0.05f;
 		while (timer < timeWait) {
 			timer += Time.deltaTime;
 
@@ -1064,9 +1071,9 @@ public class MatchManager : MonoBehaviour {
 
 		WaitForFixedUpdate waiter = new WaitForFixedUpdate();
 		float timer = 0f;
-		float duration = 1.5f + Random.value;
+		float duration = 0.5f + Random.value;
 		float spin = 0f; 
-		float spinSpeed = 1f;
+		float spinSpeed = 2f;
 		while(timer < duration) { //Show the clash slider and visualized result.
 			timer += Time.deltaTime;
 
@@ -1077,7 +1084,7 @@ public class MatchManager : MonoBehaviour {
 		}
 
 		timer = 0f;
-		duration = 2f;
+		duration = 1f;
 		float startSpin = circularRandomizationVisualizer.arrowObj.transform.eulerAngles.z % 360;
 		float endSpin = (float)randoResult / 100f * -360f;
 		//Debug.Log(startSpin + " starting and: " + endSpin);
@@ -1237,7 +1244,10 @@ public class MatchManager : MonoBehaviour {
 			yield return watier;
 		}
 		ball.ballObject.transform.SetParent(newParent);
-		ball.heldByAthlete.athleteMatchPanel.ballImg.enabled = true;
+
+		if(ball.heldByAthlete != null) {
+			ball.heldByAthlete.athleteMatchPanel.ballImg.enabled = true;
+		}
 
 		DisplayConcludeAction(action);
 	}
@@ -1378,6 +1388,8 @@ public class MatchManager : MonoBehaviour {
 			resultText.text = "Defeat...";
 		}
 
+
+
 		StartCoroutine(AnimateConclusionPanel());
 	}
 
@@ -1401,10 +1413,9 @@ public class MatchManager : MonoBehaviour {
 
 		ClearField ();
 
-		//gameController.topText.transform.parent.gameObject.SetActive (true);
 		matchFieldParent.SetActive (false);
 		matchUIObject.SetActive (false);
 
-		gameController.ExitMatchUI();
+		gameController.StartCoroutine(gameController.ExitMatchUI());
 	}
 }

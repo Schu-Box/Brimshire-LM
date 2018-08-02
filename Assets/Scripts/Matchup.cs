@@ -1794,6 +1794,8 @@ public class Matchup {
 	public void ConcludeMatch() {
 		GameController.movementPaused = false;
 
+		Debug.Log("Concluding match");
+
 		if (homeScore >= awayScore) { //home wins (REMOVE EQUAL WHEN IMPLEMENTING TIES)
 			winner = homeTeam;
 			homeTeamMarker.sortingOrder = 2;
@@ -1816,7 +1818,6 @@ public class Matchup {
 			//Overtime sudden DEATH where players can literally die
 			Debug.Log("TIE");
 		}
-
 		if (matchManager.matchUIObject.activeSelf == true) {
 			//matchManager.UndisplayMatchupUI (this);
 			matchManager.DisplayConclusionPanel();
@@ -1828,15 +1829,17 @@ public class Matchup {
 			athletesOnField[i].originalLineupTile = null;
 		}
 
-		bool allTeamsPlayed = true;
-		for (int i = 0; i < homeTeam.league.weeklyListOfMatchupsForSeason [GameController.week].Count; i++) {
-			if (homeTeam.league.weeklyListOfMatchupsForSeason [GameController.week] [i].winner == null) {
-				allTeamsPlayed = false;
+		if(GameController.week > -1) {
+			bool allTeamsPlayed = true;
+			for (int i = 0; i < homeTeam.league.weeklyListOfMatchupsForSeason [GameController.week].Count; i++) {
+				if (homeTeam.league.weeklyListOfMatchupsForSeason [GameController.week] [i].winner == null) {
+					allTeamsPlayed = false;
+				}
 			}
-		}
-		if (allTeamsPlayed == true) {
-			if (homeTeam.league == gameController.brimshireLeague) { //If this is the primary league's last game
-				gameController.LastMatchCompleted ();
+			if (allTeamsPlayed == true) {
+				if (homeTeam.league == gameController.brimshireLeague) { //If this is the primary league's last game
+					gameController.LastMatchCompleted ();
+				}
 			}
 		}
 	}
