@@ -15,6 +15,7 @@ public class FieldCellController : MonoBehaviour, IPointerClickHandler, IPointer
 	[HideInInspector] public bool canClick = false;
 
 	public GameObject fieldHighlightObject;
+	public GameObject fieldDecal;
 	public Transform centerPosition;
 	public Transform topPosition;
 	public Transform rightPosition;

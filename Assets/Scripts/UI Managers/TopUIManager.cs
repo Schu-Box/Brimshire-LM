@@ -6,6 +6,9 @@ using TMPro;
 
 public class TopUIManager : MonoBehaviour {
 
+	public Vector3 topOffPosition;
+	public Vector3 topOnPosition;
+
 	public GameObject timelineArrow;
 
 	public SchedulePiece preseasonPiece;
@@ -27,30 +30,24 @@ public class TopUIManager : MonoBehaviour {
 		team = t;
 
 		//Assumes that seasonMatchups == regularSeasonPieces.Count
-		for(int i = 0; i < team.seasonMatchups.Count; i++) {
+		for (int i = 0; i < team.seasonMatchups.Count; i++) {
 			regularSeasonPieces[i].gameObject.SetActive(true);
 
 			Matchup matchForWeek = team.seasonMatchups[i];
 			TeamController opponentForWeek = null;
 
-			string scheduleString = "";
 			if(matchForWeek != null) {
 				if(team == matchForWeek.homeTeam) {
 					opponentForWeek = matchForWeek.awayTeam;
-					scheduleString = "vs ";
 				} else {
 					opponentForWeek = matchForWeek.homeTeam;
-					scheduleString = "@ ";
 				}
-				scheduleString += opponentForWeek.teamAbbreviation;
-
-				regularSeasonPieces[i].img.color = opponentForWeek.teamColor;
-			} else {
-				scheduleString = "Bye Week";
 			}
-			
-			regularSeasonPieces[i].txt.text = scheduleString;
+
+			int weekInt = i;
+			regularSeasonPieces[i].SetSchedulePiece(opponentForWeek, weekInt);
 		}
+
 		postseasonPiece.gameObject.SetActive(true);
 	}
 

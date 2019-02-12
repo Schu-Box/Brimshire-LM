@@ -13,7 +13,7 @@ public class CountyController : MonoBehaviour, IPointerClickHandler, IPointerEnt
 	public Vector3 countyCamFocalPos;
 	public Vector3 countyHoverPos;
 	public List<GameObject> cityObjects = new List<GameObject> ();
-	public Color countyColor;
+	[HideInInspector] public Color countyColor;
 
 	public League countyLeague;
 

@@ -24,6 +24,10 @@ public class TeamController : MonoBehaviour {
 
 	//Should consider using get/set methods eventually
 	[HideInInspector] public Color teamColor;
+	[HideInInspector] public Color teamCityColor;
+	private GameObject teamBorder;
+
+
 	[HideInInspector] public int rosterMax = 10;
 	[HideInInspector] public List<Athlete> rosterList = new List<Athlete> ();
 	[HideInInspector] public Athlete teamManager;
@@ -62,7 +66,11 @@ public class TeamController : MonoBehaviour {
 		gameController = FindObjectOfType<GameController> ();
 		spriteRenderer = GetComponent<SpriteRenderer> ();
 		teamColor = spriteRenderer.color;
-		spriteRenderer.enabled = false;
+
+		teamBorder = transform.GetChild(0).gameObject;
+		teamCityColor = teamBorder.GetComponent<SpriteRenderer>().color;
+
+		HideTeam();
 
 		gameObject.name = teamName;
 		transform.localPosition = Vector2.zero;
@@ -115,6 +123,16 @@ public class TeamController : MonoBehaviour {
 
 	public Vector2 GetCityLocation() {
 		return cityLocation;
+	}
+
+	public void HideTeam() {
+		spriteRenderer.enabled = false;
+		teamBorder.GetComponent<SpriteRenderer>().enabled = false;
+	}
+
+	public void ShowTeam() {
+		spriteRenderer.enabled = true;
+		teamBorder.GetComponent<SpriteRenderer>().enabled = true;
 	}
 
 	public void SetDrafting(bool d) { 

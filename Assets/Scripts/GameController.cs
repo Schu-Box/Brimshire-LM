@@ -14,9 +14,6 @@ public class GameController : MonoBehaviour {
 	public Vector3 panelCenterPosition;
 	public Vector3 panelBelowPosition;
 
-	public Vector3 topOffPosition;
-	public Vector3 topOnPosition;
-
 	[Header("Start Menu")]
 	public GameObject titlePanel;
 	public Text titleBrimshireText;
@@ -165,7 +162,15 @@ public class GameController : MonoBehaviour {
 
 	private Matchup tutorialMatch;
 
+	void Update() {
+		if(Input.GetButtonDown("Enter")) {
+			SceneManager.LoadScene(0);
+		}
+	}
+
 	void Start () {
+		week = -1;
+
 		cameraFullSize = Camera.main.orthographicSize;
 		cameraStartPosition = Camera.main.transform.position;
 
@@ -190,7 +195,7 @@ public class GameController : MonoBehaviour {
 
 		fogLayer.SetActive (false);
 
-		topPanel.transform.localPosition = topOffPosition;
+		topPanel.transform.localPosition = topUIManager.topOffPosition;
 		topUIManager.HideTeamScheduleBeforeTeamSelection();
 
 		/*
@@ -237,7 +242,7 @@ public class GameController : MonoBehaviour {
 	public IEnumerator DisplayTitleScreen() {
 		canInteractWithMap = false;
 		titlePanel.SetActive(true);
-		fogLayer.SetActive(true);
+		//fogLayer.SetActive(true);
 
 		WaitForFixedUpdate waiter = new WaitForFixedUpdate();
 		float timer = 0f;
@@ -253,7 +258,7 @@ public class GameController : MonoBehaviour {
 		canInteractWithMap = false;
 
 		titlePanel.SetActive(false);
-		fogLayer.SetActive(false);
+		//fogLayer.SetActive(false);
 
 		StartMainGame();
 	}
@@ -280,12 +285,6 @@ public class GameController : MonoBehaviour {
 		advanceButton.onClick.RemoveAllListeners();
 		advanceButton.onClick.AddListener(() => StartCoroutine(PresentTeamOptions()));
 		advanceButton.gameObject.GetComponentInChildren<Text>().text = "Advance";
-
-		//Super mega lazy way of doing this that I guess should work
-		/*
-		Destroy(countyObjects[0].GetComponent<CountyController>().cityObjects[0].GetComponent<CityController>().teamObjects[1]);
-		Destroy(countyObjects[0].GetComponent<CountyController>().cityObjects[0].GetComponent<CityController>().teamObjects[2]);
-		*/
 	}
 
 	public IEnumerator PresentTeamOptions() {
@@ -316,8 +315,6 @@ public class GameController : MonoBehaviour {
 			availableTeams.Remove(chosenTeam);
 
 			teamOfferPanelList[i].SetTeam(chosenTeam);
-			teamOfferPanelList[i].gameObject.GetComponent<Button>().onClick.RemoveAllListeners();
-			teamOfferPanelList[i].gameObject.GetComponent<Button>().onClick.AddListener(() => ViewTeamSelection(chosenTeam));
 		}
 
 		yield return MoveObjectFromCurrentPositionTo(teamSelectionPanel, panelCenterPosition, 0.8f);
@@ -482,8 +479,7 @@ public class GameController : MonoBehaviour {
 		}
 		cityPanel.transform.position = cityHoverPos;
 
-		countyColorImage.color = city.GetCounty ().countyColor;
-
+		countyColorImage.color = city.GetTeamOfCity().teamCityColor;
 		cityPanel.GetComponent<Image> ().color = city.GetTeamOfCity ().teamColor;
 
 		cityNameText.text = city.cityName;
@@ -507,8 +503,10 @@ public class GameController : MonoBehaviour {
 	#region Displaying Team
 	public IEnumerator MoveAndDisplayTeamPanel(TeamController team) {
 		CountyController teamCounty = team.GetCity().GetCounty();
-
-		yield return StartCoroutine(UndisplayTeamDetailPanel());
+		
+		if(displayTeam != null) {
+			yield return StartCoroutine(UndisplayTeamDetailPanel());
+		}
 
 		if(teamCounty != focusedCounty) {
 			FocusCounty(teamCounty);
@@ -558,7 +556,7 @@ public class GameController : MonoBehaviour {
 
 		teamLogoPrimaryImage.sprite = team.logoPrimarySprite;
 		teamLogoSecondaryImage.sprite = team.logoSecondarySprite;
-		teamLogoPrimaryImage.color = team.GetCity ().GetCounty ().GetCapitalCity ().GetTeamOfCity ().teamColor; //The capital team's color
+		teamLogoPrimaryImage.color = team.teamCityColor; //The city's color
 		teamLogoSecondaryImage.color = team.teamColor;
 
 		teamDescriptionText.text = team.teamDescription;
@@ -566,7 +564,7 @@ public class GameController : MonoBehaviour {
 		teamGoldText.text = "Gold: " + team.gold;
 		teamPrestigeText.text = "Prestige: " + team.prestige;
 
-		team.gameObject.GetComponent<SpriteRenderer> ().enabled = false;
+		team.HideTeam();
 		cityPanel.SetActive (false);
 
 		if (playerManager == null) {
@@ -625,7 +623,7 @@ public class GameController : MonoBehaviour {
 			}
 
 			int weekInt = i;
-			newScheduleObj.GetComponent<ScheduleObject>().SetScheduleObject(opponentForWeek, weekInt);
+			newScheduleObj.GetComponent<SchedulePiece>().SetSchedulePiece(opponentForWeek, weekInt);
 		}
 
 		exitButton.gameObject.SetActive(true);
@@ -907,8 +905,8 @@ public class GameController : MonoBehaviour {
 		for (int i = 0; i < brimshireLeague.weeklyListOfMatchupsForSeason [week].Count; i++) {
 			TeamController homeTeam = brimshireLeague.weeklyListOfMatchupsForSeason [week] [i].homeTeam;
 			TeamController awayTeam = brimshireLeague.weeklyListOfMatchupsForSeason [week] [i].awayTeam;
-			homeTeam.GetComponent<SpriteRenderer> ().enabled = true;
-			awayTeam.GetComponent<SpriteRenderer> ().enabled = true;
+			homeTeam.ShowTeam();
+			awayTeam.ShowTeam();
 
 			if (homeTeam.GetCityLocation () != (Vector2)homeTeam.transform.position) { //If the home team is not at home, then move them there
 				StartCoroutine (TeamMovement (homeTeam, homeTeam.GetCityLocation ()));
@@ -1034,20 +1032,22 @@ public class GameController : MonoBehaviour {
 				}
 			}
 
-			Debug.Log("Yessir");
-
 			matchManager.DisplayMatchUI (match);
 		}
 	}
 
 	public IEnumerator ExitMatchUI() {
 		yield return StartCoroutine (ZoomAndShiftCameraTo (cameraStartPosition, cameraFullSize, 1f));
+
+		if(week > -1 && week < brimshireLeague.regularSeasonLength) {
+			topUIManager.regularSeasonPieces[week].UpdateSchedulePiece();
+		}
 		
 		movementPaused = false;
 		canHoverMatches = true;
 
 		topPanel.SetActive(true);
-		StartCoroutine(MoveObjectFromCurrentPositionTo(topPanel, topOnPosition, 0.5f));
+		StartCoroutine(MoveObjectFromCurrentPositionTo(topPanel, topUIManager.topOnPosition, 0.5f));
 
 		if(week > -1) {
 			for (int i = 0; i < brimshireLeague.weeklyListOfMatchupsForSeason [week].Count; i++) { //Reveal the battle markers
@@ -1172,7 +1172,7 @@ public class GameController : MonoBehaviour {
 			for (int j = 0; j < countyObjects [i].GetComponent<CountyController> ().cityObjects.Count; j++) { //Disable the sprite of each city across the kingdom
 				countyObjects [i].GetComponent<CountyController> ().cityObjects [j].GetComponent<SpriteRenderer> ().enabled = false;
 				countyObjects [i].GetComponent<CountyController> ().cityObjects [j].GetComponent<Collider2D> ().enabled = false;
-				countyObjects [i].GetComponent<CountyController> ().cityObjects [j].GetComponent<CityController> ().GetTeamOfCity ().GetComponent<SpriteRenderer> ().enabled = false;
+				countyObjects [i].GetComponent<CountyController> ().cityObjects [j].GetComponent<CityController> ().GetTeamOfCity ().HideTeam();
 			
 				/*
 				TeamController team = countyObjects [i].GetComponent<CountyController> ().cityObjects [j].GetComponent<CityController> ().GetTeamOfCity ();

@@ -19,6 +19,7 @@ public class AthleteMatchPanel : MonoBehaviour {
 	public Text ballControlText;
 	public Text defenseText;
 	public Slider actionSlider;
+	public Color deactivatedColor;
 
 
 	public Image selectionBorderImg;
@@ -45,13 +46,19 @@ public class AthleteMatchPanel : MonoBehaviour {
 			jerseyImg.color = teamColor;
 			positionText.text = athlete.positionName;
 
-			ballImg.enabled = false;
+			if(athlete.heldBall == null) {
+				ballImg.enabled = false;
+			} else {
+				ballImg.enabled = true;
+			}
 
 			overallText.text = athlete.overallRating.ToString();
+			/*
 			speedText.text = athlete.GetAttributeValue("speed").ToString();
 			strengthText.text = athlete.GetAttributeValue("strength").ToString();
 			ballControlText.text = athlete.GetAttributeValue("ball control").ToString();
 			defenseText.text = athlete.GetAttributeValue("defense").ToString();
+			*/
 
 			selectionBorderImg.color = teamColor;
 			//selectionBorderImg.enabled = false;
@@ -60,8 +67,8 @@ public class AthleteMatchPanel : MonoBehaviour {
 			button.onClick.RemoveAllListeners();
 
 			if(athlete.currentFieldTile == null) {
-				actionSlider.value = 0;
-				actionSlider.GetComponentInChildren<Text>().text = "On the Bench";
+				//actionSlider.value = actionSlider.maxValue;
+				//actionSlider.GetComponentInChildren<Text>().text = "On the Bench";
 
 				if(a.GetTeam() == GameController.playerManager.GetTeam()) {
 					button.onClick.AddListener (() => matchManager.SelectAthlete (this));
@@ -70,7 +77,7 @@ public class AthleteMatchPanel : MonoBehaviour {
 					button.enabled = false;
 				}
 			} else {
-				actionSlider.GetComponentInChildren<Text>().text = "Waiting to Start the Match";
+				//actionSlider.GetComponentInChildren<Text>().text = "Waiting to Start the Match";
 
 				if(a.GetTeam() == GameController.playerManager.GetTeam() && !matchManager.currentMatch.matchStarted) {
 					button.onClick.AddListener(() => matchManager.RemoveAthleteFromField(this));

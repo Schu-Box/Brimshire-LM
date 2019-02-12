@@ -31,6 +31,8 @@ public class CityController : MonoBehaviour, IPointerClickHandler, IPointerEnter
 			}
 		}
 
+		GetComponent<SpriteRenderer>().color = currentCityTeam.teamCityColor;
+
 		GetComponent<SpriteRenderer> ().enabled = false;
 		GetComponent<Collider2D> ().enabled = false;
 	}
@@ -39,8 +41,6 @@ public class CityController : MonoBehaviour, IPointerClickHandler, IPointerEnter
 	public void OnPointerClick (PointerEventData eventData) {
 		if (GameController.canInteractWithMap && GetComponent<SpriteRenderer>().enabled == true) {
 			gameController.DisplayTeamDetailPanel (GetTeamOfCity ());
-
-
 		}
 	}
 	#endregion
@@ -48,7 +48,7 @@ public class CityController : MonoBehaviour, IPointerClickHandler, IPointerEnter
 	#region IPointerEnterHandler implementation
 	public void OnPointerEnter (PointerEventData eventData) {
 		if (GameController.canInteractWithMap && GetComponent<SpriteRenderer>().enabled == true) {
-			currentCityTeam.gameObject.GetComponent<SpriteRenderer> ().enabled = true;
+			currentCityTeam.gameObject.GetComponent<TeamController> ().ShowTeam();
 
 			gameController.DisplayCityPanel (this);
 		}
@@ -58,7 +58,7 @@ public class CityController : MonoBehaviour, IPointerClickHandler, IPointerEnter
 	#region IPointerExitHandler implementation
 	public void OnPointerExit (PointerEventData eventData) {
 		if (GameController.canInteractWithMap && GetComponent<SpriteRenderer>().enabled == true) {
-			currentCityTeam.gameObject.GetComponent<SpriteRenderer> ().enabled = false;
+			currentCityTeam.gameObject.GetComponent<TeamController>().HideTeam();
 
 			gameController.cityPanel.SetActive (false);
 		}

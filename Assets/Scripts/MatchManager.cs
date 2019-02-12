@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class MatchManager : MonoBehaviour {
 
@@ -33,20 +34,20 @@ public class MatchManager : MonoBehaviour {
 	public GameObject informationPanel;
 	public Text informationText;
 
-	[Header("Colors")]
-	public Color descBaseColor;
-	public Color descDecidingColor;
-	public Color descDecidedColor;
+	[Header("UI Managers")]
+	public TickBoxTimelineManager timelineManager;
 
 	[Header("Match Field")]
 	public GameObject matchFieldParent;
-	public GameObject matchGridHolder;
+	public GameObject fieldGridHolder;
+	public GameObject fieldColumnHolderPrefab;
+	public GameObject fieldCellPrefab;
 	//public GameObject homeGoalzone;
 	//public GameObject awayGoalzone;
 
 	[Header("Gameplay UI")]
 	public GameObject playIndicator;
-	public GameObject movementIndicator;
+	public GameObject movementIndicator; //Unused now
 	//public Slider clashSlider;
 	public CircularRandomizationVisualizer circularRandomizationVisualizer;
 
@@ -58,9 +59,9 @@ public class MatchManager : MonoBehaviour {
 	public Vector3 conclusionOffPos;
 	public Vector3 conclusionOnPos;
 	public GameObject matchConclusionPanel;
-	public Text resultText;
+	public TextMeshProUGUI resultText;
 
-	public List<List<FieldCellController>> fieldGridCells = new List<List<FieldCellController>> ();
+	public List<List<FieldCellController>> fieldGridCellList = new List<List<FieldCellController>> ();
 
 	public Matchup currentMatch;
 	//public List<Coroutine> sequentialAnimationList = new List<Coroutine>();
@@ -80,6 +81,12 @@ public class MatchManager : MonoBehaviour {
 		GameController.movementPaused = true;
 		GameController.canHoverMatches = false;
 
+		//These shouldn't be necessary and is probably bad practice but can't really hurt.
+		selectedOpportunityButton = null;
+		selectedAthleteMatchPanel = null;
+		actionSelected = false;
+		selectedBall = null;
+
 		//Everything just pops up right now but eventually there should be an unravelling animation to bring it up
 		matchUIObject.SetActive (true);
 		matchFieldParent.SetActive (true);
@@ -96,15 +103,19 @@ public class MatchManager : MonoBehaviour {
 		circularRandomizationVisualizer.gameObject.SetActive(false);
 		matchConclusionPanel.SetActive(false);
 
+		matchHomeTitle.transform.parent.parent.GetComponent<Image>().color = match.homeTeam.teamCityColor;
 		matchHomeTitle.transform.parent.GetComponent<Image> ().color = match.homeTeam.teamColor;
 		matchHomeTitle.text = match.homeTeam.teamName;
+		matchAwayTitle.transform.parent.parent.GetComponent<Image>().color = match.awayTeam.teamCityColor;
 		matchAwayTitle.transform.parent.GetComponent<Image> ().color = match.awayTeam.teamColor;
 		matchAwayTitle.text = match.awayTeam.teamName;
 
-		matchHomeScore.text = match.homeScore.ToString ();
-		matchAwayScore.text = match.awayScore.ToString ();
+		matchHomeScore.transform.parent.parent.GetComponent<Image>().color = match.homeTeam.teamCityColor;
 		matchHomeScore.transform.parent.GetComponent<Image> ().color = match.homeTeam.teamColor;
+		matchHomeScore.text = match.homeScore.ToString ();
+		matchAwayScore.transform.parent.parent.GetComponent<Image>().color = match.awayTeam.teamCityColor;
 		matchAwayScore.transform.parent.GetComponent<Image> ().color = match.awayTeam.teamColor;
+		matchAwayScore.text = match.awayScore.ToString ();
 
 		opportunityButtonHolder.SetActive(true);
 		homeMatchPanel.SetActive (true);
@@ -153,6 +164,8 @@ public class MatchManager : MonoBehaviour {
 
 		ClearOpportunityPanels();
 
+		timelineManager.ClearTimeline();
+	
 		TeamController playerTeam = null;
 		if (match.homeTeam == GameController.playerManager.GetTeam ()) {
 			playerTeam = match.homeTeam;
@@ -186,77 +199,53 @@ public class MatchManager : MonoBehaviour {
 	}
 
 	public void SetMatchField() {
-		//Eventually this should be generated here instead of pulled from the transform's children
+		ClearField ();
 
-		fieldGridCells = new List<List<FieldCellController>> ();
-		for (int i = 0; i < matchGridHolder.transform.childCount; i++) {
-			fieldGridCells.Add (new List<FieldCellController> ());
+		fieldGridCellList = new List<List<FieldCellController>>();
+		for(int x = 0; x < currentMatch.xFieldTiles; x++) {
+			fieldGridCellList.Add(new List<FieldCellController>());
+			GameObject newColumnHolder = Instantiate(fieldColumnHolderPrefab, Vector3.zero, Quaternion.identity, fieldGridHolder.transform);
 
-			for(int j = 0; j < matchGridHolder.transform.GetChild(i).childCount; j++) {
-				fieldGridCells[i].Add (matchGridHolder.transform.GetChild (i).GetChild (j).GetComponent<FieldCellController> ());
-				FieldCellController cell = fieldGridCells [i] [j];
-				
-				cell.fieldTile = currentMatch.fieldGrid [i] [j];
+			for(int y = 0; y < currentMatch.yFieldTiles; y++) {
+				GameObject newCell = Instantiate(fieldCellPrefab, Vector3.zero, Quaternion.identity, newColumnHolder.transform);
+				FieldCellController cell = newCell.GetComponent<FieldCellController>();
+				fieldGridCellList[x].Add(cell);
 
+				cell.fieldTile = currentMatch.fieldGrid[x][y];
+				//Poor implementation here for multiplayer purposings
 				cell.highlightSpriter.color = GameController.playerManager.GetTeam().teamColor;
 				cell.UnhighlightCell ();
 
 				if (cell.fieldTile.isGoal) {
+					cell.fieldDecal.SetActive(true);
+
 					if (cell.fieldTile.homeSide) {
-						cell.GetComponent<SpriteRenderer> ().color = currentMatch.homeTeam.teamColor;
+						cell.GetComponent<SpriteRenderer> ().color = currentMatch.homeTeam.teamCityColor;
+						cell.fieldDecal.GetComponent<SpriteRenderer>().color = currentMatch.homeTeam.teamColor;
 					} else {
-						cell.GetComponent<SpriteRenderer> ().color = currentMatch.awayTeam.teamColor;
+						cell.GetComponent<SpriteRenderer> ().color = currentMatch.awayTeam.teamCityColor;
+						cell.fieldDecal.GetComponent<SpriteRenderer>().color = currentMatch.awayTeam.teamColor;
 					}
+				}
+
+				if(cell.fieldTile.ballLooseInTile != null) {
+					PlaceBallObject(cell.fieldTile.ballLooseInTile, cell.fieldTile);
 				}
 			}
 		}
-
-		ClearField ();
 	}
 
 	public void ClearField() {
 		Debug.Log ("Clearing Field");
-		List<GameObject> deleteThisNephew = new List<GameObject> ();
 
-		for (int x = 0; x < fieldGridCells.Count; x++) {
-			for (int y = 0; y < fieldGridCells [x].Count; y++) {
-				FieldCellController cell = fieldGridCells [x] [y];
-
-				//if (!cell.fieldTile.isGoal && !cell.fieldTile.isBoundary) {
-					for (int i = 0; i < cell.centerPosition.childCount; i++) {
-						deleteThisNephew.Add (cell.centerPosition.GetChild (i).gameObject);
-					}
-					for (int i = 0; i < cell.topPosition.childCount; i++) {
-						deleteThisNephew.Add (cell.topPosition.GetChild (i).gameObject);
-					}
-					for (int i = 0; i < cell.rightPosition.childCount; i++) {
-						deleteThisNephew.Add (cell.rightPosition.GetChild (i).gameObject);
-					}
-					for (int i = 0; i < cell.bottomPosition.childCount; i++) {
-						deleteThisNephew.Add (cell.bottomPosition.GetChild (i).gameObject);
-					}
-					for (int i = 0; i < cell.leftPosition.childCount; i++) {
-						deleteThisNephew.Add (cell.leftPosition.GetChild (i).gameObject);
-					}
-					
-					for(int i = 0; i < cell.transform.childCount; i++) {
-						//if()
-					}
-
-				//}
-			}
-		}
-
-		for (int i = deleteThisNephew.Count - 1; i >= 0; i--) {
-			GameObject mustDestroy = deleteThisNephew [i];
-			deleteThisNephew.Remove (mustDestroy);
-			Destroy (mustDestroy);
+		for(int i = fieldGridHolder.transform.childCount - 1; i > -1; i--) {
+			Destroy(fieldGridHolder.transform.GetChild(i).gameObject);
 		}
 	}
 
 	public FieldCellController GetFieldCellObject(int rowNum, int columnNum) {
 		//Debug.Log ("Getting field cell");
-		return fieldGridCells [rowNum] [columnNum];
+		return fieldGridCellList [rowNum] [columnNum];
 	}
 
 	public void SetRosterPanels() {
@@ -313,35 +302,6 @@ public class MatchManager : MonoBehaviour {
 		for(int i = awayAthletesDisplayed; i < awayAthletePanelSlotHolder.transform.childCount; i++) {
 			awayAthletePanelSlotHolder.transform.GetChild(i).GetChild(0).GetComponentInChildren<AthleteMatchPanel>().SetAthleteMatchPanel(null);
 		}
-
-		/*
-		for (int i = 0; i < currentMatch.athletesOnField.Count; i++) { //Set the Athlete Panels in the match for each athlete
-			AthleteMatchPanel athMatPan;
-			if (currentMatch.athletesOnField [i].GetTeam () == currentMatch.homeTeam) {
-				athMatPan = homeAthletePanelSlotHolder.transform.GetChild (homeAthletesDisplayed).GetComponent<AthleteMatchPanel>();
-				homeAthletesDisplayed++;
-			} else {
-				athPan = fieldAwayAthletesGroup.transform.GetChild (awayAthletesDisplayed).gameObject;
-				awayAthletesDisplayed++;
-			}
-			athPan.GetComponent<AthletePanel> ().SetAthletePanel (currentMatch.athletesOnField [i]);
-			currentMatch.athletesOnField [i].athletePanelInMatch = athPan.GetComponent<AthletePanel> ();
-
-			athPan.GetComponent<AthletePanel>().descriptorPanel.SetActive (true);
-		}
-
-		for (int i = 0; i < fieldHomeAthletesGroup.transform.childCount; i++) {
-			if (fieldHomeAthletesGroup.transform.GetChild (i).GetComponent<AthletePanel> ().athlete == null) {
-				fieldHomeAthletesGroup.transform.GetChild (i).GetComponent<AthletePanel> ().SetAthletePanel (null);
-			}
-		}
-
-		for (int i = 0; i < fieldAwayAthletesGroup.transform.childCount; i++) {
-			if (fieldAwayAthletesGroup.transform.GetChild (i).GetComponent<AthletePanel> ().athlete == null) {
-				fieldAwayAthletesGroup.transform.GetChild (i).GetComponent<AthletePanel> ().SetAthletePanel (null);
-			}
-		}
-		*/
 	}
 
 	public void SelectAthlete(AthleteMatchPanel athMatPan) {
@@ -353,10 +313,10 @@ public class MatchManager : MonoBehaviour {
 			selectedAthleteMatchPanel = athMatPan;
 			selectedAthleteMatchPanel.selectionBorderImg.enabled = true;
 
-			for (int i = 0; i < fieldGridCells.Count; i++) {
-				for (int j = 0; j < fieldGridCells [i].Count; j++) {
-					FieldCellController cell = fieldGridCells [i] [j];
-					if (!cell.fieldTile.isGoal && !cell.fieldTile.isBoundary) {
+			for (int i = 0; i < fieldGridCellList.Count; i++) {
+				for (int j = 0; j < fieldGridCellList [i].Count; j++) {
+					FieldCellController cell = fieldGridCellList [i] [j];
+					if (!cell.fieldTile.isGoal) {
 						if ((GameController.playerManager.GetTeam () == currentMatch.homeTeam && cell.fieldTile.homeSide)
 						|| (GameController.playerManager.GetTeam () == currentMatch.awayTeam && !cell.fieldTile.homeSide)) {
 							if (cell.fieldTile.athleteOnTile == null) {
@@ -382,9 +342,13 @@ public class MatchManager : MonoBehaviour {
 	public void RemoveAthleteFromField(AthleteMatchPanel athMatPan) {
 		UnhighlightAllGridCells ();
 
-		Destroy (athMatPan.athlete.athleteOnFieldObject);
+		if(athMatPan.athlete.heldBall != null) {
+			athMatPan.athlete.heldBall.ballObject = null;
+		}
 
-		athMatPan.athlete.GetTeam ().seasonMatchups [GameController.week].RemoveAthleteFromFieldGrid (athMatPan.athlete);
+		currentMatch.RemoveAthleteFromFieldGrid (athMatPan.athlete);
+
+		Destroy (athMatPan.athlete.athleteOnFieldObject);
 
 		athMatPan.SetAthleteMatchPanel(athMatPan.athlete);
 		UnselectAthlete();
@@ -393,9 +357,9 @@ public class MatchManager : MonoBehaviour {
 	}
 
 	public void UnhighlightAllGridCells() {
-		for (int i = 0; i < fieldGridCells.Count; i++) {
-			for (int j = 0; j < fieldGridCells [i].Count; j++) {
-				FieldCellController cell = fieldGridCells [i] [j];
+		for (int i = 0; i < fieldGridCellList.Count; i++) {
+			for (int j = 0; j < fieldGridCellList [i].Count; j++) {
+				FieldCellController cell = fieldGridCellList [i] [j];
 				cell.UnhighlightCell ();
 			}
 		}
@@ -409,7 +373,7 @@ public class MatchManager : MonoBehaviour {
 		Transform newParent = gridCell.centerPosition;
 
 		Quaternion newQuaternion = Quaternion.identity;
-		if (gridCell.fieldTile.gridX >= (fieldGridCells.Count / 2)) {
+		if (gridCell.fieldTile.gridX >= (fieldGridCellList.Count / 2)) {
 			newQuaternion.eulerAngles = new Vector3 (0, 180, 0);
 		}
 
@@ -423,18 +387,12 @@ public class MatchManager : MonoBehaviour {
 		jerseySpriteRend.sprite = placedAthlete.jerseySprite;
 		jerseySpriteRend.color = placedAthlete.GetTeam ().teamColor;
 
-		Debug.Log("YO");
-
 		if (placedAthlete.currentFieldTile == null) { //If the athlete is not on the field then add them to the field
 			currentMatch.AddAthleteToFieldGrid (placedAthlete, gridCell.fieldTile); //Put the athlete in the grid data
 		}
 
-		Debug.Log("Got emm");
-
 		placedAthlete.athleteMatchPanel.SetAthleteMatchPanel(placedAthlete);
 		placedAthlete.athleteMatchPanel.selectionBorderImg.enabled = true;
-
-		Debug.Log("Checking");
 
 		CheckForGameStart (GameController.playerManager.GetTeam()); //The player's team
 	}
@@ -506,12 +464,7 @@ public class MatchManager : MonoBehaviour {
 			yield return waiter;
 		}
 
-		if(currentMatch.homeTeam == GameController.playerManager.GetTeam()) {
-			BeginPlayerBallPlacement();
-		} else {
-			currentMatch.AssignBallStarts(currentMatch.homeTeam);
-			currentMatch.SetNextTurn();
-		}
+		currentMatch.SetNextTurn();
 	}
 
 	public void DisplayStartedMatchUI() {
@@ -528,61 +481,38 @@ public class MatchManager : MonoBehaviour {
 		timeText.text = currentMatch.timeUnitsLeft + " ticks";
 
 		SetFieldRosterPanels();
-
-		UpdateAthleteActionSliders();
-	}
-
-	public void BeginPlayerBallPlacement() {
-		informationPanel.SetActive(true);
-		informationText.text = "Place a ball in your half of the field.";
-
-		for (int i = 0; i < currentMatch.ballList.Count; i++) {
-			if (currentMatch.ballList[i].heldByAthlete == null && currentMatch.ballList[i].looseInFieldTile == null) {
-				selectedBall = currentMatch.ballList[i];
-				break;
-			}
-		}
-
-		if(selectedBall != null) {
-			for (int i = 0; i < fieldGridCells.Count; i++) {
-				for (int j = 0; j < fieldGridCells [i].Count; j++) {
-					FieldCellController cell = fieldGridCells [i] [j];
-					if (!cell.fieldTile.isGoal && !cell.fieldTile.isBoundary) {
-						if ((GameController.playerManager.GetTeam () == currentMatch.homeTeam && cell.fieldTile.homeSide)
-						|| (GameController.playerManager.GetTeam () == currentMatch.awayTeam && !cell.fieldTile.homeSide)) {
-							cell.SetClickability(true);
-							cell.HighlightCell ();
-						}
-					}
-				}
-			}
-		} else { //If all balls have been placed
-			informationPanel.SetActive(false);
-
-			currentMatch.SetNextTurn();
-		}
 	}
 
 	public void PlaceBallObject(Ball ball, FieldTile tile) {
 		//Debug.Log("Placed ball");
-		selectedBall = null;
+		selectedBall = null; //Can get rid of this now
 
 		UnhighlightAllGridCells();
 
-		Transform newParent = null;
-		if(ball.heldByAthlete != null) {
-			newParent = ball.heldByAthlete.athleteOnFieldObject.transform;
-			ball.heldByAthlete.athleteMatchPanel.ballImg.enabled = true;
-		} else if(ball.looseInFieldTile != null) {
-			newParent = GetFieldCellObject(tile.gridX, tile.gridY).centerPosition;
+		Transform tileCenterTrans = GetFieldCellObject(tile.gridX, tile.gridY).centerPosition;
+
+		if(ball.ballObject == null) {
+			Debug.Log("Creating new ball object");
+
+			GameObject ballObj = Instantiate(ballPrefab, tileCenterTrans.localPosition, Quaternion.identity, tileCenterTrans);
+			ballObj.transform.localPosition = Vector3.zero;
+			ball.ballObject = ballObj;
 		} else {
-			Debug.Log("Then where the fuck is this ball?");
+			ball.ballObject.transform.SetParent(tileCenterTrans);
 		}
 
-		GameObject ballObj = Instantiate(ballPrefab, newParent.position, Quaternion.identity, newParent);
-		ball.ballObject = ballObj;
+		if(ball.heldByAthlete != null) {
+			SetBallParentAthlete(ball, ball.heldByAthlete);
+		}
+	}
 
-		BeginPlayerBallPlacement();
+	public void SetBallParentAthlete(Ball ball, Athlete athlete) {
+		Debug.Log("Setting new ball parent");
+
+		//athlete.athleteMatchPanel.ballImg.enabled = true;
+
+		ball.ballObject.transform.SetParent(athlete.athleteOnFieldObject.transform);
+		ball.ballObject.transform.localPosition = Vector3.zero;
 	}
 
 	public void DisplayNewMatchTurn(Matchup match) {
@@ -593,7 +523,7 @@ public class MatchManager : MonoBehaviour {
 		//Might be a better spot for this
 		HighlightAthlete(match.athleteWithTurn);
 
-		UpdateAthleteActionSliders ();
+		//UpdateAthleteActionSliders ();
 
 		for (int i = 0; i < opportunityButtonHolder.transform.childCount; i++) {
 			OpportunityButton opportunityButton = opportunityButtonHolder.transform.GetChild (i).GetChild(0).GetComponent<OpportunityButton> ();
@@ -661,7 +591,7 @@ public class MatchManager : MonoBehaviour {
 
 		playIndicator.SetActive(true); //Display an arrow
 		Vector3 playPos = athlete.athleteOnFieldObject.transform.position;
-		playPos.y += 0.17f;
+		playPos.y += 0.29f;
 		playIndicator.transform.position = playPos;
 
 		playIndicatorCoroutine = StartCoroutine(BounceObjectUpAndDown(playIndicator));
@@ -734,9 +664,9 @@ public class MatchManager : MonoBehaviour {
 	}
 
 	public void UndisplayValidSelections() {
-		for (int i = 0; i < fieldGridCells.Count; i++) {
-			for (int j = 0; j < fieldGridCells [i].Count; j++) {
-				FieldCellController cell = fieldGridCells[i][j];
+		for (int i = 0; i < fieldGridCellList.Count; i++) {
+			for (int j = 0; j < fieldGridCellList [i].Count; j++) {
+				FieldCellController cell = fieldGridCellList[i][j];
 				cell.UnhighlightCell ();
 				cell.StopHoverAnimation();
 			}
@@ -744,7 +674,7 @@ public class MatchManager : MonoBehaviour {
 	}
 
 	public IEnumerator WaitThenDisplaySelectedOpportunity(Athlete athlete, OpportunityButton oppButt) {
-		float timeWait = 0.3f;
+		float timeWait = 0.1f;
 		float timer = 0;
 
 		while (timer < timeWait) {
@@ -776,7 +706,7 @@ public class MatchManager : MonoBehaviour {
 	}
 
 	public IEnumerator WaitThenDisplayBeginAction(Athlete athlete, OpportunityButton oppButt, FieldTile tile) {
-		float timeWait = 1f;
+		float timeWait = 0.2f;
 		float timer = 0;
 
 		while (timer < timeWait) {
@@ -798,13 +728,16 @@ public class MatchManager : MonoBehaviour {
 		if(action == null) {
 			Debug.Log("Big time error on ya head top.");
 		} else {
-			informationText.text = "in " + action.timeUnitsLeft + " ticks: " + action.chanceSuccess + "% chance";
+			informationText.text = action.chanceSuccess + "% chance; " + action.timeUnitsLeft + " tick cooldown";
+
+			timelineManager.DisplayTickBoxHighlight(action.athlete, action.timeUnitsLeft);
 		}	
 	}
 
 	public void UndisplaySelectedAction(OpportunityButton oppButt) {
 		informationText.text = "Select an Action";
-		
+
+		timelineManager.HideHighlight();
 	}
 
 	public void DisplayBeginAction(Athlete athlete, OpportunityButton oppButt, FieldTile tile) {
@@ -827,104 +760,27 @@ public class MatchManager : MonoBehaviour {
 			}
 		}	
 
-		athlete.athleteMatchPanel.actionSlider.maxValue = action.timeUnitsLeft;
-		athlete.athleteMatchPanel.actionSlider.value = 0;
-		athlete.athleteMatchPanel.actionSlider.GetComponentInChildren<Text>().text = action.opportunity.actionVerb + " in " + action.timeUnitsLeft + " ticks";
+		timelineManager.AddNewTickBox(athlete, action.timeUnitsLeft);
+		timelineManager.DeactivateNextTickBox(0);
 
-		StartCoroutine (AnimateBeginAction (athlete, action, tile));
-	}
+		//athlete.athleteMatchPanel.actionSlider.maxValue = action.timeUnitsLeft;
+		//athlete.athleteMatchPanel.actionSlider.value -= action.timeUnitsLeft;
+		//athlete.athleteMatchPanel.actionSlider.GetComponentInChildren<Text>().text = action.opportunity.actionVerb + " in " + action.timeUnitsLeft + " ticks";
 
-	public IEnumerator AnimateBeginAction(Athlete athlete, Action action, FieldTile tile) {
-		Transform athleteMovingParent = null;
-		WaitForFixedUpdate waiter = new WaitForFixedUpdate ();
-		float step = 0f;
-
-		switch (action.opportunity.id.ToLower ()) {
-
-		case "dribble":
-		case "move":
-			FieldTile startTile = athlete.currentFieldTile;
-			FieldTile endTile = tile;
-			Vector3 moveEulerRotation = Vector3.zero;
-
-			Vector3 athleteStartPos = athlete.athleteOnFieldObject.transform.position;
-			FieldCellController fieldCell = GetFieldCellObject (startTile.gridX, startTile.gridY);
-
-			movementIndicator.SetActive (true);
-			movementIndicator.transform.position = fieldCell.transform.position;
-
-			if (startTile.gridX > endTile.gridX) {
-				moveEulerRotation.z = 270;
-
-				athleteMovingParent = fieldCell.leftPosition;
-			} else if (startTile.gridX < endTile.gridX) {
-				moveEulerRotation.z = 90;
-
-				athleteMovingParent = fieldCell.rightPosition;
-			} else {
-				if (startTile.gridY > endTile.gridY) {
-					moveEulerRotation.z = 0;
-
-					athleteMovingParent = fieldCell.bottomPosition;
-				} else if (startTile.gridY < endTile.gridY) {
-					moveEulerRotation.z = 180;
-
-					athleteMovingParent = fieldCell.topPosition;
-				} else {
-					Debug.Log ("That ain't no movement, dawg.");
-				}
-			}
-			movementIndicator.transform.eulerAngles = moveEulerRotation;
-
-			SpriteRenderer spriter = movementIndicator.GetComponent<SpriteRenderer> ();
-			spriter.size = new Vector2 (1f, 1f);
-
-
-			while (step < 1f) {
-				step += Time.deltaTime;
-
-				spriter.size = new Vector2 (1f, Mathf.Lerp (1f, 2f, step));
-
-				athlete.athleteOnFieldObject.transform.position = Vector3.Lerp (athleteStartPos, athleteMovingParent.position, step);
-
-				yield return waiter;
-			}
-
-			movementIndicator.SetActive (false);
-
-			athlete.athleteOnFieldObject.transform.SetParent (athleteMovingParent);
-
-			break;
-
-		case "kick":
-			Debug.Log ("Animate an athlete charging up their kick.");
-
-			while (step < 0.5f) {
-				step += Time.deltaTime;
-
-				yield return waiter;
-			}
-			break;
-
-		case "wait":
-			Debug.Log("Animate an athlete waiting");
-			break;
-
-		default:
-			Debug.Log ("Opportunity " + action.opportunity.id + " no existo.");
-			break;
-		}
-
-		currentMatch.BeginAction (athlete, action, tile);
+		//StartCoroutine (AnimateBeginAction (athlete, action, tile));
+		currentMatch.BeginAction(athlete, action, tile);
 	}
 
 	public IEnumerator WaitThenAdvanceTime() {
 
 		WaitForFixedUpdate waiter = new WaitForFixedUpdate();
 		Vector3 newScale = timeText.transform.localScale;
-		float timeWait = 0.5f;
+		float timeWait = 0.3f;
 		float timer = 0f;
-		float speed = 0.05f;
+		float speed = 0.08f;
+		
+		timelineManager.StartCoroutine(timelineManager.ShiftWithTick(timeWait));
+
 		while (timer < timeWait) {
 			timer += Time.deltaTime;
 
@@ -948,31 +804,23 @@ public class MatchManager : MonoBehaviour {
 
 	public void UpdateTimer() {
 		timeText.text = currentMatch.timeUnitsLeft + " ticks";
-		UpdateAthleteActionSliders ();
+		//UpdateAthleteActionSliders ();
 	}
 
+	/*
 	public void UpdateAthleteActionSliders() {
 		for (int i = 0; i < currentMatch.athletesOnField.Count; i++) {
 			Athlete athlete = currentMatch.athletesOnField [i];
 
 			if (athlete.activeAction != null) {
-				athlete.athleteMatchPanel.actionSlider.value = athlete.athleteMatchPanel.actionSlider.maxValue - athlete.activeAction.timeUnitsLeft;
-
-				athlete.athleteMatchPanel.actionSlider.GetComponentInChildren<Text>().text = athlete.activeAction.opportunity.actionVerb;
-				if(athlete.activeAction.timeUnitsLeft > 0) {
-					athlete.athleteMatchPanel.actionSlider.GetComponentInChildren<Text>().text += " in " + athlete.activeAction.timeUnitsLeft + " ticks";
-				}
+				//athlete.athleteMatchPanel.actionSlider.value = athlete.athleteMatchPanel.actionSlider.maxValue - athlete.activeAction.timeUnitsLeft;
+				athlete.athleteMatchPanel.UpdateActionIndicator(athlete.activeAction.timeUnitsLeft);
 			} else {
-				if (currentMatch.athleteWithTurn == athlete) {
-					//athlete.athleteMatchPanel.descriptorPanel.GetComponent<Image> ().color = descDecidingColor;
-					athlete.athleteMatchPanel.actionSlider.GetComponentInChildren<Text>().text = "Deciding...";
-				} else {
-					//athlete.athleteMatchPanel.descriptorPanel.GetComponent<Image> ().color = descBaseColor;
-					athlete.athleteMatchPanel.actionSlider.GetComponentInChildren<Text>().text = "Waiting for turn...";
-				}
+				athlete.athleteMatchPanel.UpdateActionIndicator(0);
 			}
 		}
 	}
+	*/
 
 	public IEnumerator AnimateClash(Action action) {
 		FieldTile tile = action.fieldTile;
@@ -989,10 +837,10 @@ public class MatchManager : MonoBehaviour {
 		} else if(invader.currentFieldTile.gridX < tile.gridX) {
 			invaderBattlePosition = fieldCell.leftPosition.position;
 			defenderBattlePosition = fieldCell.rightPosition.position;
-		} else if(invader.currentFieldTile.gridY > tile.gridY) {
+		} else if(invader.currentFieldTile.gridY < tile.gridY) {
 			invaderBattlePosition = fieldCell.topPosition.position;
 			defenderBattlePosition = fieldCell.bottomPosition.position;
-		} else if(invader.currentFieldTile.gridY < tile.gridY) {
+		} else if(invader.currentFieldTile.gridY > tile.gridY) {
 			invaderBattlePosition = fieldCell.bottomPosition.position;
 			defenderBattlePosition = fieldCell.topPosition.position;
 		} else {
@@ -1253,7 +1101,7 @@ public class MatchManager : MonoBehaviour {
 	}
 
 	public void DisplayConcludeAction(Action action) {
-		UpdateAthleteActionSliders();
+		//UpdateAthleteActionSliders();
 
 		currentMatch.ConcludeAction(action);
 	}
@@ -1278,6 +1126,7 @@ public class MatchManager : MonoBehaviour {
 		}
 
 		Destroy(ball.ballObject);
+		ball.ballObject = null;
 
 		currentMatch.CompleteGoalScoring(ball, action.fieldTile);
 	}
@@ -1288,6 +1137,8 @@ public class MatchManager : MonoBehaviour {
 	}
 
 	public IEnumerator AnimateAthletesReturningToOriginalPositions(TeamController teamScoredOn) {
+
+		timelineManager.ClearTimeline();
 
 		List<Vector3> athleteStartList = new List<Vector3>();
 		List<Transform> newParentList = new List<Transform>();
@@ -1313,12 +1164,7 @@ public class MatchManager : MonoBehaviour {
 			currentMatch.athletesOnField[i].athleteOnFieldObject.transform.SetParent(newParentList[i]);
 		}
 
-		if(teamScoredOn == GameController.playerManager.GetTeam()) {
-			BeginPlayerBallPlacement();
-		} else {
-			currentMatch.AssignBallStarts(teamScoredOn);
-			currentMatch.SetNextTurn();
-		}
+		currentMatch.SetNextTurn();
 	}
 
 	/*
